@@ -72,32 +72,27 @@ def path_from_uuid_relpath(uuid, relpath):
 
 
 
-def get_config():
-    """
-    Returns the config by reading the config file.
-    """
-    repo_dir = os.path.join(os.getcwd())
-    jackup_dir = os.path.join(repo_dir, ".jackup")
-    jackup_file = os.path.join(jackup_dir, "jackup.json")
-    jackup_log = os.path.join(jackup_dir, "jackup.log")
-
-    return (repo_dir, jackup_dir, jackup_file, jackup_log)
-
-def is_jackup_repo():
+def is_jackup_repo(config):
     """
     Returns whether the current working directory is a valid repository.
     """
-    _, _, jackup_file, _ = get_config()
+    _, _, jackup_file, _ = config
     return os.path.isfile(jackup_file)
 
-def init():
+def jackup_repo_or_die(config):
+    if not is_jackup_repo(config):
+        print("This is not a jackup repository.")
+        print("use 'jackup init' to initialize")
+        exit(1)
+
+def init(config):
     """
     Handler for `jackup init`.
     Initializes a new repository in the current working directory.
     """
-    repo_dir, jackup_dir, jackup_file, jackup_log = get_config()
+    repo_dir, jackup_dir, jackup_file, jackup_log = config
 
-    if is_jackup_repo():
+    if is_jackup_repo(config):
         print("This is already a jackup repository!")
     else:
         print("Initializing a new repository in " + os.getcwd())
@@ -114,7 +109,7 @@ def can_connect(host, port):
     # 0 means no errors, c-style.
     return not cmd_ssh.returncode
 
-def add(push, pull, ssh, port, name, path):
+def add(config, push, pull, ssh, port, name, path):
     """
     Handler for `jackup add`.
     Adds a new slave to the repository.
@@ -125,14 +120,9 @@ def add(push, pull, ssh, port, name, path):
     push the contents of the master directory to the slave, or pull the contents
     of the slave down to the master directory.
     """
-    repo_dir, jackup_dir, jackup_file, jackup_log = get_config()
+    repo_dir, jackup_dir, jackup_file, jackup_log = config
 
-    port = str(port)
-
-    if not is_jackup_repo():
-        print("This is not a jackup repository.")
-        print("use 'jackup init' to initialize")
-        return
+    jackup_repo_or_die(config)
 
     with open(jackup_file, 'r') as jackup_db:
         jackup_json = json.load(jackup_db)
@@ -151,7 +141,7 @@ def add(push, pull, ssh, port, name, path):
         type = "ssh"
         host, path = path.rsplit(':')
 
-        if not can_connect(host, port):
+        if not can_connect(host, str(port)):
             print("unable to connect to " + host)
             return
     else:
@@ -174,16 +164,13 @@ def add(push, pull, ssh, port, name, path):
 
     print("added slave " + '<'+name+'>')
 
-def remove(name):
+def remove(config, name):
     """
     Remove a slave from the repository.
     """
-    repo_dir, jackup_dir, jackup_file, jackup_log = get_config()
+    repo_dir, jackup_dir, jackup_file, jackup_log = config
 
-    if not is_jackup_repo():
-        print("This is not a jackup repository.")
-        print("use 'jackup init' to initialize")
-        return
+    jackup_repo_or_die(config)
 
     with open(jackup_file, 'r') as jackup_db:
         jackup_json = json.load(jackup_db)
@@ -203,16 +190,13 @@ def remove(name):
 
     print("removed slave " + '<'+name+'>')
 
-def list():
+def list(config):
     """
     List all slaves in the repository.
     """
-    repo_dir, jackup_dir, jackup_file, jackup_log = get_config()
+    repo_dir, jackup_dir, jackup_file, jackup_log = config
 
-    if not is_jackup_repo():
-        print("This is not a jackup repository.")
-        print("use 'jackup init' to initialize")
-        return
+    jackup_repo_or_die(config)
 
     with open(jackup_file, 'r') as jackup_db:
         jackup_json = json.load(jackup_db)
@@ -240,7 +224,7 @@ def sync_path_local(slave):
     """
     Returns the local filesystem path to the slave.
     """
-    repo_dir, jackup_dir, jackup_file, jackup_log = get_config()
+    repo_dir, jackup_dir, jackup_file, jackup_log = config
 
     mnt_point = mountpoint_from_uuid(slave['uuid'])
     if not mnt_point:
@@ -265,18 +249,19 @@ def rsync(slave, source, dest):
     """
     Calls rsync to sync the master directory and the slave.
     """
-    repo_dir, jackup_dir, jackup_file, jackup_log = get_config()
+    repo_dir, jackup_dir, jackup_file, jackup_log = config
 
     rsync_args = ['--exclude=.jackup',
                   '--log-file=' + jackup_log,
                   '--partial', '--progress', '--archive',
                   '--recursive', '--human-readable',
+                  '--timeout=30',
                   '--copy-links',
                   '--new-compress',
                   '--checksum',
                   # '--quiet',
                   '--verbose',
-                  # '--dry-run',
+                  '--dry-run',
                   # '--delete'
     ]
 
@@ -284,14 +269,16 @@ def rsync(slave, source, dest):
         rsync_args += ['-e', 'ssh -p' + slave['port']]
         rsync_args += ['--port', slave['port']]
 
-    cmd_rsync = subprocess.run(['rsync'] + rsync_args + [source, dest], stdout=subprocess.PIPE)
-    return str(cmd_rsync.stdout, 'utf-8', 'ignore').strip()
+    cmd_rsync = subprocess.run(['rsync'] + rsync_args + [source, dest], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    rsync_stdout = str(cmd_rsync.stdout, 'utf-8', 'ignore').strip()
+    rsync_stderr = str(cmd_rsync.stderr, 'utf-8', 'ignore').strip()
+    return (rsync_stdout, rsync_stderr)
 
 def sync_slave(slave):
     """
     Figures out whether to pull or push a slave, and delegates syncing to `rsync`.
     """
-    repo_dir, jackup_dir, jackup_file, jackup_log = get_config()
+    repo_dir, jackup_dir, jackup_file, jackup_log = config
 
     if slave['type'] == 'local':
         sync_path = sync_path_local(slave)
@@ -303,30 +290,31 @@ def sync_slave(slave):
         return False
 
     if slave['action'] == 'pull':
-        rsync_output = rsync(slave, sync_path, repo_dir)
+        rsync_output, rsync_stderr = rsync(slave, sync_path, repo_dir)
     elif slave['action'] == 'push':
-        rsync_output = rsync(slave, repo_dir, sync_path)
+        rsync_output, rsync_stderr = rsync(slave, repo_dir, sync_path)
 
     if rsync_output:
         print(rsync_output)
 
-    print('done syncing ' + slave['name'])
+    if rsync_stderr:
+        print('failed syncing ' + slave['name'])
+        print(rsync_stderr)
+        return False
 
+    print('done syncing ' + slave['name'])
     return True
 
-def sync():
+def sync(config):
     """
     Handler for `jackup sync`.
     Starts syncing the master directory with its slaves.
     Starts with pulling all available pull-slaves into the master, then pushing the
     master to all push-slaves.
     """
-    repo_dir, jackup_dir, jackup_file, jackup_log = get_config()
+    repo_dir, jackup_dir, jackup_file, jackup_log = config
 
-    if not is_jackup_repo():
-        print("This is not a jackup repository.")
-        print("use 'jackup init' to initialize")
-        return
+    jackup_repo_or_die(config)
 
     print("Syncing master: " + repo_dir)
 
@@ -355,39 +343,51 @@ def sync():
         print('failed to push any slaves')
 
 def main():
-    parser = argparse.ArgumentParser(description="Jackup: Simple duplication.")
+    # setup the parser for commandline usage
+    parser = argparse.ArgumentParser(description="Jackup: Simple synchronization.")
     subparsers = parser.add_subparsers()
 
     init_parser = subparsers.add_parser("init", help="Initialize a new repository")
     init_parser.set_defaults(func=init)
 
-    add_parser = subparsers.add_parser("add", help="Add a slave to the repository")
+    add_parser = subparsers.add_parser("add", help="Add a slave to repository")
     group = add_parser.add_mutually_exclusive_group(required=True)
-    group.add_argument('--push', action='store_true')
-    group.add_argument('--pull', action='store_true')
+    group.add_argument('--push', action='store_true', help="push masters content to the slave")
+    group.add_argument('--pull', action='store_true', help="pull content from slave down to master")
     add_parser.add_argument('--ssh', action='store_true', help="if the slave in on a remote machine")
     add_parser.add_argument('--port', type=int, default=22, help="port used to connect to remote machine")
     add_parser.add_argument("name", help="name of the slave to add to the repository")
     add_parser.add_argument("path", help="directory used to sync with master")
     add_parser.set_defaults(func=add)
 
-    remove_parser = subparsers.add_parser("remove", aliases=['rm'], help="Remove a slave from the repository")
+    remove_parser = subparsers.add_parser("remove", aliases=['rm'], help="Remove a slave from repository")
     remove_parser.add_argument("name", help="name of the slave to remove")
     remove_parser.set_defaults(func=remove)
 
     list_parser = subparsers.add_parser("list", aliases=['ls'], help="List all slaves in repository")
     list_parser.set_defaults(func=list)
 
-    sync_parser = subparsers.add_parser("sync", help="Synchronizes the master to the slaves")
+    sync_parser = subparsers.add_parser("sync", help="Synchronizes master and slaves")
     sync_parser.set_defaults(func=sync)
 
-    try:
-        args = parser.parse_args()
-        args = vars(args)
-        func = args.pop("func")
-        func(**args)
-    except Exception as e:
-        print("Error:" + str(e))
+    args = parser.parse_args()
+
+    # we were run without any arguments, print usage and exit
+    if not len(sys.argv) > 1:
+        parser.print_help()
+        return
+
+    repo_dir = os.path.join(os.getcwd())
+    jackup_dir = os.path.join(repo_dir, ".jackup")
+    jackup_file = os.path.join(jackup_dir, "jackup.json")
+    jackup_log = os.path.join(jackup_dir, "jackup.log")
+
+    config = [repo_dir, jackup_dir, jackup_file, jackup_log]
+
+    # delegate to relevant functions based on parsed args
+    args = vars(args)
+    func = args.pop("func")
+    func(config, **args)
 
 if __name__ == "__main__":
     main()
