@@ -84,21 +84,12 @@ def init():
             json.dump({ "master": os.getcwd(), "slaves": [] }, jackup_db)
 
 def can_connect(host, port):
-    cmd_ssh = subprocess.run(['ssh', '-p', port, '-i/home/jens/.ssh/stuetop', host, 'exit 0'])
+    cmd_ssh = subprocess.run(['ssh', '-p', port, host, 'exit 0'])
 
     # 0 means no errors, c-style.
     return not cmd_ssh.returncode
 
-def remote_exists(host, path, port):
-    cmd_ssh = subprocess.run(['ssh', '-p', port, '-i/home/jens/.ssh/stuetop', host, 'test -d', path])
-
-    # 0 means no errors, c-style.
-    if cmd_ssh.returncode == 0:
-        return True
-    elif cmd_ssh.returncode == 1:
-        return False
-
-def add(ssh, port, name, path):
+def add(push, pull, ssh, port, name, path):
     repo_dir, jackup_dir, jackup_file, jackup_log = get_config()
 
     port = str(port)
@@ -111,10 +102,15 @@ def add(ssh, port, name, path):
     with open(jackup_file, 'r') as jackup_db:
         jackup_json = json.load(jackup_db)
 
-    names = map((lambda s: s["name"]), jackup_json['slaves'])
+    names = [ p['name'] for p in jackup_json['slaves'] ]
     if (name in names):
         print("that name already exists in the repository")
         return
+
+    if push:
+        action = 'push'
+    elif pull:
+        action = 'pull'
 
     if ssh:
         type = "ssh"
@@ -126,7 +122,7 @@ def add(ssh, port, name, path):
     else:
         type = "local"
 
-    new_rec = {"name": name, "type": type, "path": path}
+    new_rec = {"name": name, "action": action, "type": type, "path": path}
 
     if type == "ssh":
         new_rec['host'] = host
@@ -190,38 +186,82 @@ def list():
         print("use 'jackup add <path>' to add some")
     else:
         print("MASTER: " + master_path + " will duplicate to:")
-        table = [['name', 'type', 'path', 'uuid/relpath / host/port']]
+        table = [['name', 'action', 'type', 'path', 'uuid/relpath / host/port']]
         for s in jackup_json['slaves']:
             if s['type'] == 'local':
-                table.append([s['name'], s['type'], s["path"], s['uuid']+'/'+s['relpath']])
+                table.append([s['name'], s['action'], s['type'], s["path"], s['uuid']+'/'+s['relpath']])
             elif s['type'] == 'ssh':
-                table.append([s['name'], s['type'], s["path"], s['host']+'/'+s['port']])
+                table.append([s['name'], s['action'], s['type'], s["path"], s['host']+'/'+s['port']])
 
         tp.print_table(table)
-
-def slave_print(slave, string):
-    print('<' + slave['name'] + '>: ' + string)
 
 def sync_path_local(slave):
     repo_dir, jackup_dir, jackup_file, jackup_log = get_config()
 
     mnt_point = mountpoint_from_uuid(slave['uuid'])
     if not mnt_point:
-        slave_print(slave, "is not mounted, skipping.")
+        print(slave['name'] + " is not mounted, skipping.")
         return
 
-    slave_print(slave, "found at " + mnt_point)
+    print(slave['name'] + " found at " + mnt_point)
     return path_from_uuid_relpath(slave['uuid'], slave['relpath'])
 
 def sync_path_ssh(slave):
     repo_dir, jackup_dir, jackup_file, jackup_log = get_config()
 
     if not can_connect(slave['host'], slave['port']):
-        slave_print(slave, "unable to connect to " + slave['host'] + ", skipping.")
+        print(slave['name'] + " unable to connect to " + slave['host'] + ", skipping.")
         return
 
-    slave_print(slave, slave['host'] + " is online")
+    print(slave['host'] + " is online")
     return slave['host'] + ":" + slave['path']
+
+def rsync(slave, source, dest):
+    repo_dir, jackup_dir, jackup_file, jackup_log = get_config()
+
+    rsync_args = ['--exclude=.jackup',
+                  '--log-file=' + jackup_log,
+                  '--partial', '--progress', '--archive',
+                  '--recursive', '--human-readable',
+                  '--copy-links',
+                  # '--compress',
+                  '--checksum',
+                  # '--quiet',
+                  '--verbose',
+                  # '--dry-run',
+                  # '--delete'
+    ]
+
+    if slave['type'] == 'ssh':
+        rsync_args += ['-e', 'ssh -i/home/jens/.ssh/stuetop -i/home/jens/.ssh/termux -p' + slave['port']]
+        rsync_args += ['--port', slave['port']]
+
+    cmd_rsync = subprocess.run(['rsync'] + rsync_args + [source, dest], stdout=subprocess.PIPE)
+    return str(cmd_rsync.stdout, 'utf-8', 'ignore').strip()
+
+def sync_slave(slave):
+    repo_dir, jackup_dir, jackup_file, jackup_log = get_config()
+
+    if slave['type'] == 'local':
+        sync_path = sync_path_local(slave)
+    elif slave['type'] == 'ssh':
+        sync_path = sync_path_ssh(slave)
+
+    # skip if slave is unavailable
+    if not sync_path:
+        return False
+
+    if slave['action'] == 'pull':
+        rsync_output = rsync(slave, sync_path, repo_dir)
+    elif slave['action'] == 'push':
+        rsync_output = rsync(slave, repo_dir, sync_path)
+
+    if rsync_output:
+        print(rsync_output)
+
+    print('done syncing ' + slave['name'])
+
+    return True
 
 def sync():
     repo_dir, jackup_dir, jackup_file, jackup_log = get_config()
@@ -236,44 +276,26 @@ def sync():
     with open(jackup_file, 'r') as jackup_db:
         jackup_json = json.load(jackup_db)
 
-    syncs = 0
+    pulls = 0
+    pushes = 0
 
-    for s in jackup_json['slaves']:
-        if s['type'] == 'local':
-            sync_path = sync_path_local(s)
-        elif s['type'] == 'ssh':
-            sync_path = sync_path_ssh(s)
+    to_pull = [ p for p in jackup_json['slaves'] if p['action'] == 'pull' ]
+    for pu in to_pull:
+        print('trying to pull from ' + pu['name'])
+        if sync_slave(pu):
+            pulls += 1
 
-        # skip if slave is unavailable
-        if not sync_path:
-            continue
+    if any(to_pull) and pulls == 0:
+        print('failed to pull any slaves')
 
-        print('<'+s['name']+'>: ' + "syncing to " + sync_path)
+    to_push = [ p for p in jackup_json['slaves'] if p['action'] == 'push' ]
+    for pu in to_push:
+        print('trying to push to ' + pu['name'])
+        if sync_slave(pu):
+            pushes += 1
 
-        ssh_command = ''
-        if s['type'] == 'ssh':
-            ssh_command = 'ssh -i/home/jens/.ssh/stuetop'
-
-        cmd_rsync = subprocess.run(['rsync', '--exclude=.jackup',
-                                    '-e', ssh_command,
-                                    '--partial', '--progress', '--archive',
-                                    '--recursive', '--human-readable', '--delete',
-                                    '--compress', '--checksum', '--log-file=' + jackup_log,
-                                    '--quiet',
-                                    '--dry-run',
-                                    # '--verbose',
-                                    repo_dir, sync_path], stdout=subprocess.PIPE)
-
-        cmd_rsync_output = str(cmd_rsync.stdout, 'utf-8', 'ignore').strip()
-
-        if cmd_rsync_output:
-            print(cmd_rsync_output)
-        else:
-            slave_print(s, 'done syncing')
-            syncs += 1
-
-    if syncs == 0:
-        print('failed to sync to any targets')
+    if any(to_push) and pushes == 0:
+        print('failed to push any slaves')
 
 def main():
     parser = argparse.ArgumentParser(description="Jackup: Simple duplication.")
@@ -283,6 +305,9 @@ def main():
     init_parser.set_defaults(func=init)
 
     add_parser = subparsers.add_parser("add", help="Add a slave to the repository")
+    group = add_parser.add_mutually_exclusive_group(required=True)
+    group.add_argument('--push', action='store_true')
+    group.add_argument('--pull', action='store_true')
     add_parser.add_argument('--ssh', action='store_true', help="if the slave in on a remote machine")
     add_parser.add_argument('--port', type=int, default=22, help="port used to connect to remote machine")
     add_parser.add_argument("name", help="name of the slave to add to the repository")
@@ -299,10 +324,13 @@ def main():
     sync_parser = subparsers.add_parser("sync", help="Synchronizes the master to the slaves")
     sync_parser.set_defaults(func=sync)
 
-    args = parser.parse_args()
-    args = vars(args)
-    func = args.pop("func")
-    func(**args)
+    try:
+        args = parser.parse_args()
+        args = vars(args)
+        func = args.pop("func")
+        func(**args)
+    except Exception as e:
+        print("Error:" + str(e))
 
 if __name__ == "__main__":
     main()
