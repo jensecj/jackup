@@ -224,7 +224,7 @@ def rsync(slave, source, dest):
                   '--partial', '--progress', '--archive',
                   '--recursive', '--human-readable',
                   '--copy-links',
-                  # '--compress',
+                  '--new-compress',
                   '--checksum',
                   # '--quiet',
                   '--verbose',
