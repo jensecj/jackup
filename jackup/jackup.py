@@ -154,27 +154,23 @@ def list(config):
 
     tp.print_table(table)
 
-def _sync_path_local(slave):
+def _path_to_local_slave(slave):
     """
     Returns the local filesystem path to the slave.
     """
     mnt_point = su.mountpoint_from_uuid(slave['uuid'])
     if not mnt_point:
-        print(slave['name'] + " is not mounted, skipping.")
         return
 
-    print(slave['name'] + " found at " + mnt_point)
     return su.path_from_uuid_relpath(slave['uuid'], slave['relpath'])
 
-def _sync_path_ssh(slave):
+def _path_to_ssh_slave(slave):
     """
     Returns the remote path to the slave.
     """
     if not can_connect(slave['host'], slave['port']):
-        print(slave['name'] + " unable to connect to " + slave['host'] + ", skipping.")
         return
 
-    print(slave['host'] + " is online")
     return slave['host'] + ":" + slave['path']
 
 def _rsync(config, slave, source, dest):
@@ -209,9 +205,18 @@ def _sync_slave(config, slave):
     Figures out whether to pull or push a slave, and delegates syncing to `rsync`.
     """
     if slave['type'] == 'local':
-        sync_path = _sync_path_local(slave)
+        sync_path = _path_to_local_slave(slave)
+        if sync_path:
+            print(slave['name'] + ' found at ' + sync_path + ", syncing...")
+        else:
+            print(slave['name'] + ' is not mounted, skipping')
     elif slave['type'] == 'ssh':
-        sync_path = _sync_path_ssh(slave)
+        sync_path = _path_to_ssh_slave(slave)
+        if sync_path:
+            print(slave['name'] + ' is online, syncing...')
+        else:
+            print(slave['name'] + " unable to connect to " + slave['host'] + ", skipping.")
+            return
 
     # skip if slave is unavailable
     if not sync_path:
