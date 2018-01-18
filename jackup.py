@@ -233,7 +233,7 @@ def rsync(slave, source, dest):
     ]
 
     if slave['type'] == 'ssh':
-        rsync_args += ['-e', 'ssh -i/home/jens/.ssh/stuetop -i/home/jens/.ssh/termux -p' + slave['port']]
+        rsync_args += ['-e', 'ssh -p' + slave['port']]
         rsync_args += ['--port', slave['port']]
 
     cmd_rsync = subprocess.run(['rsync'] + rsync_args + [source, dest], stdout=subprocess.PIPE)
