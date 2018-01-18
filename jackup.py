@@ -105,6 +105,7 @@ def can_connect(host, port):
     """
     Returns whether we can connect to a host through ssh.
     """
+    cmd_ssh = subprocess.run(['ssh', '-p', port, host, 'exit 0'])
 
     # 0 means no errors, c-style.
     return not cmd_ssh.returncode
