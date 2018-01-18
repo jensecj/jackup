@@ -151,7 +151,7 @@ def list(config):
 
     tp.print_table(table)
 
-def sync_path_local(slave):
+def _sync_path_local(slave):
     """
     Returns the local filesystem path to the slave.
     """
@@ -163,7 +163,7 @@ def sync_path_local(slave):
     print(slave['name'] + " found at " + mnt_point)
     return su.path_from_uuid_relpath(slave['uuid'], slave['relpath'])
 
-def sync_path_ssh(slave):
+def _sync_path_ssh(slave):
     """
     Returns the remote path to the slave.
     """
@@ -174,7 +174,7 @@ def sync_path_ssh(slave):
     print(slave['host'] + " is online")
     return slave['host'] + ":" + slave['path']
 
-def rsync(config, slave, source, dest):
+def _rsync(config, slave, source, dest):
     """
     Calls rsync to sync the master directory and the slave.
     """
@@ -201,23 +201,23 @@ def rsync(config, slave, source, dest):
     rsync_stderr = str(cmd_rsync.stderr, 'utf-8', 'ignore').strip()
     return (rsync_stdout, rsync_stderr)
 
-def sync_slave(config, slave):
+def _sync_slave(config, slave):
     """
     Figures out whether to pull or push a slave, and delegates syncing to `rsync`.
     """
     if slave['type'] == 'local':
-        sync_path = sync_path_local(slave)
+        sync_path = _sync_path_local(slave)
     elif slave['type'] == 'ssh':
-        sync_path = sync_path_ssh(slave)
+        sync_path = _sync_path_ssh(slave)
 
     # skip if slave is unavailable
     if not sync_path:
         return False
 
     if slave['action'] == 'pull':
-        rsync_output, rsync_stderr = rsync(config, slave, sync_path, config['master'])
+        rsync_output, rsync_stderr = _rsync(config, slave, sync_path, config['master'])
     elif slave['action'] == 'push':
-        rsync_output, rsync_stderr = rsync(config, slave, config['master'], sync_path)
+        rsync_output, rsync_stderr = _rsync(config, slave, config['master'], sync_path)
 
     if rsync_output:
         print(rsync_output)
@@ -250,7 +250,7 @@ def sync(config):
     to_pull = [ slave for slave in jackup_json['slaves'] if slave['action'] == 'pull' ]
     for slave in to_pull:
         print('trying to pull from ' + slave['name'])
-        if sync_slave(config, slave):
+        if _sync_slave(config, slave):
             pulls += 1
 
     if any(to_pull) and pulls == 0:
@@ -259,7 +259,7 @@ def sync(config):
     to_push = [ slave for slave in jackup_json['slaves'] if slave['action'] == 'push' ]
     for slave in to_push:
         print('trying to push to ' + slave['name'])
-        if sync_slave(config, slave):
+        if _sync_slave(config, slave):
             pushes += 1
 
     if any(to_push) and pushes == 0:
