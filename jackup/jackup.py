@@ -76,8 +76,7 @@ def is_jackup_repo(config):
     """
     Returns whether the current working directory is a valid repository.
     """
-    _, _, jackup_file, _ = config
-    return os.path.isfile(jackup_file)
+    return os.path.isfile(config['file'])
 
 def jackup_repo_or_die(config):
     if not is_jackup_repo(config):
@@ -90,16 +89,16 @@ def init(config):
     Handler for `jackup init`.
     Initializes a new repository in the current working directory.
     """
-    repo_dir, jackup_dir, jackup_file, jackup_log = config
-
     if is_jackup_repo(config):
         print("This is already a jackup repository!")
-    else:
-        print("Initializing a new repository in " + os.getcwd())
-        os.mkdir(jackup_dir)
+        return
 
-        with open(jackup_file, 'w') as jackup_db:
-            json.dump({ "master": os.getcwd(), "slaves": [] }, jackup_db)
+    os.mkdir(config['dir'])
+
+    with open(config['file'], 'w') as jackup_db:
+        json.dump({ "master": config['master'], "slaves": [] }, jackup_db)
+
+    print("Initialized a new repository in " + config['master'])
 
 def can_connect(host, port):
     """
@@ -121,14 +120,12 @@ def add(config, push, pull, ssh, port, name, path):
     push the contents of the master directory to the slave, or pull the contents
     of the slave down to the master directory.
     """
-    repo_dir, jackup_dir, jackup_file, jackup_log = config
-
     jackup_repo_or_die(config)
 
-    with open(jackup_file, 'r') as jackup_db:
+    with open(config['file'], 'r') as jackup_db:
         jackup_json = json.load(jackup_db)
 
-    names = [ p['name'] for p in jackup_json['slaves'] ]
+    names = [ slave['name'] for slave in jackup_json['slaves'] ]
     if (name in names):
         print("that name already exists in the repository")
         return
@@ -148,85 +145,80 @@ def add(config, push, pull, ssh, port, name, path):
     else:
         type = "local"
 
-    new_rec = {"name": name, "action": action, "type": type, "path": path}
+    new_slave = { "name": name, "action": action, "type": type, "path": path }
 
     if type == "ssh":
-        new_rec['host'] = host
-        new_rec['port'] = str(port)
+        new_slave['host'] = host
+        new_slave['port'] = str(port)
     elif type == 'local':
         uuid, relpath = uuid_relpath_pair_from_path(path)
-        new_rec['uuid'] = uuid
-        new_rec['relpath'] = relpath
+        new_slave['uuid'] = uuid
+        new_slave['relpath'] = relpath
 
-    jackup_json['slaves'].append(new_rec)
+    jackup_json['slaves'].append(new_slave)
 
-    with open(jackup_file, 'w') as jackup_db:
+    with open(config['file'], 'w') as jackup_db:
         json.dump(jackup_json, jackup_db)
 
-    print("added slave " + '<'+name+'>')
+    print("added slave " + name)
 
 def remove(config, name):
     """
     Remove a slave from the repository.
     """
-    repo_dir, jackup_dir, jackup_file, jackup_log = config
-
     jackup_repo_or_die(config)
 
-    with open(jackup_file, 'r') as jackup_db:
+    with open(config['file'], 'r') as jackup_db:
         jackup_json = json.load(jackup_db)
 
-    names = map((lambda s: s["name"]), jackup_json['slaves'])
+    names = [ slave['name'] for slave in jackup_json['slaves'] ]
     if (name not in names):
-        print('<'+name+'>' + " is not in the repository")
+        print(name + " is not in the repository")
         return
 
-    for s in jackup_json['slaves']:
-        if (s["name"] == name):
-            jackup_json['slaves'].remove(s)
+    for slave in jackup_json['slaves']:
+        if (slave["name"] == name):
+            jackup_json['slaves'].remove(slave)
             break
 
-    with open(jackup_file, 'w') as jackup_db:
+    with open(config['file'], 'w') as jackup_db:
         json.dump(jackup_json, jackup_db)
 
-    print("removed slave " + '<'+name+'>')
+    print("removed slave " + name)
 
 def list(config):
     """
     List all slaves in the repository.
     """
-    repo_dir, jackup_dir, jackup_file, jackup_log = config
-
     jackup_repo_or_die(config)
 
-    with open(jackup_file, 'r') as jackup_db:
+    with open(config['file'], 'r') as jackup_db:
         jackup_json = json.load(jackup_db)
         master_path = jackup_json['master']
 
     if not jackup_json['slaves']:
         print("this repository has no slaves.")
         print("use 'jackup add <path>' to add some")
-    else:
-        print("MASTER: " + master_path + " will duplicate to:")
-        table = [['name', 'action', 'type', 'path', 'uuid/relpath / host/port']]
+        return
 
-        slaves = [ p for p in jackup_json['slaves'] if p['action'] == 'pull' ]
-        slaves += [ p for p in jackup_json['slaves'] if p['action'] == 'push' ]
+    print("MASTER: " + config['master'] + " will duplicate to:")
+    table = [['name', 'action', 'type', 'path', 'uuid/relpath / host/port']]
 
-        for s in slaves:
-            if s['type'] == 'local':
-                table.append([s['name'], s['action'], s['type'], s["path"], s['uuid']+'/'+s['relpath']])
-            elif s['type'] == 'ssh':
-                table.append([s['name'], s['action'], s['type'], s["path"], s['host']+'/'+s['port']])
+    slaves = [ slave for slave in jackup_json['slaves'] if slave['action'] == 'pull' ]
+    slaves += [ slave for slave in jackup_json['slaves'] if slave['action'] == 'push' ]
 
-        tp.print_table(table)
+    for slave in slaves:
+        if slave['type'] == 'local':
+            table.append([slave['name'], slave['action'], slave['type'], slave["path"], slave['uuid']+'/'+slave['relpath']])
+        elif slave['type'] == 'ssh':
+            table.append([slave['name'], slave['action'], slave['type'], slave["path"], slave['host']+'/'+slave['port']])
+
+    tp.print_table(table)
 
 def sync_path_local(slave):
     """
     Returns the local filesystem path to the slave.
     """
-    repo_dir, jackup_dir, jackup_file, jackup_log = config
-
     mnt_point = mountpoint_from_uuid(slave['uuid'])
     if not mnt_point:
         print(slave['name'] + " is not mounted, skipping.")
@@ -246,14 +238,12 @@ def sync_path_ssh(slave):
     print(slave['host'] + " is online")
     return slave['host'] + ":" + slave['path']
 
-def rsync(slave, source, dest):
+def rsync(config, slave, source, dest):
     """
     Calls rsync to sync the master directory and the slave.
     """
-    repo_dir, jackup_dir, jackup_file, jackup_log = config
-
     rsync_args = ['--exclude=.jackup',
-                  '--log-file=' + jackup_log,
+                  '--log-file=' + config['log'],
                   '--partial', '--progress', '--archive',
                   '--recursive', '--human-readable',
                   '--timeout=30',
@@ -275,12 +265,10 @@ def rsync(slave, source, dest):
     rsync_stderr = str(cmd_rsync.stderr, 'utf-8', 'ignore').strip()
     return (rsync_stdout, rsync_stderr)
 
-def sync_slave(slave):
+def sync_slave(config, slave):
     """
     Figures out whether to pull or push a slave, and delegates syncing to `rsync`.
     """
-    repo_dir, jackup_dir, jackup_file, jackup_log = config
-
     if slave['type'] == 'local':
         sync_path = sync_path_local(slave)
     elif slave['type'] == 'ssh':
@@ -291,9 +279,9 @@ def sync_slave(slave):
         return False
 
     if slave['action'] == 'pull':
-        rsync_output, rsync_stderr = rsync(slave, sync_path, repo_dir)
+        rsync_output, rsync_stderr = rsync(config, slave, sync_path, config['master'])
     elif slave['action'] == 'push':
-        rsync_output, rsync_stderr = rsync(slave, repo_dir, sync_path)
+        rsync_output, rsync_stderr = rsync(config, slave, config['master'], sync_path)
 
     if rsync_output:
         print(rsync_output)
@@ -313,13 +301,11 @@ def sync(config):
     Starts with pulling all available pull-slaves into the master, then pushing the
     master to all push-slaves.
     """
-    repo_dir, jackup_dir, jackup_file, jackup_log = config
-
     jackup_repo_or_die(config)
 
-    print("Syncing master: " + repo_dir)
+    print("Syncing master: " + config['master'])
 
-    with open(jackup_file, 'r') as jackup_db:
+    with open(config['file'], 'r') as jackup_db:
         jackup_json = json.load(jackup_db)
 
     pulls = 0
@@ -328,7 +314,7 @@ def sync(config):
     to_pull = [ p for p in jackup_json['slaves'] if p['action'] == 'pull' ]
     for pu in to_pull:
         print('trying to pull from ' + pu['name'])
-        if sync_slave(pu):
+        if sync_slave(config, pu):
             pulls += 1
 
     if any(to_pull) and pulls == 0:
@@ -337,7 +323,7 @@ def sync(config):
     to_push = [ p for p in jackup_json['slaves'] if p['action'] == 'push' ]
     for pu in to_push:
         print('trying to push to ' + pu['name'])
-        if sync_slave(pu):
+        if sync_slave(config, pu):
             pushes += 1
 
     if any(to_push) and pushes == 0:
@@ -378,12 +364,12 @@ def main():
         parser.print_help()
         return
 
-    repo_dir = os.path.join(os.getcwd())
-    jackup_dir = os.path.join(repo_dir, ".jackup")
+    master_dir = os.path.join(os.getcwd())
+    jackup_dir = os.path.join(master_dir, ".jackup")
     jackup_file = os.path.join(jackup_dir, "jackup.json")
     jackup_log = os.path.join(jackup_dir, "jackup.log")
 
-    config = [repo_dir, jackup_dir, jackup_file, jackup_log]
+    config = { 'master': master_dir, 'dir': jackup_dir, 'file': jackup_file, 'log': jackup_log }
 
     # delegate to relevant functions based on parsed args
     args = vars(args)
