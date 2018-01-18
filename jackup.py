@@ -187,7 +187,11 @@ def list():
     else:
         print("MASTER: " + master_path + " will duplicate to:")
         table = [['name', 'action', 'type', 'path', 'uuid/relpath / host/port']]
-        for s in jackup_json['slaves']:
+
+        slaves = [ p for p in jackup_json['slaves'] if p['action'] == 'pull' ]
+        slaves += [ p for p in jackup_json['slaves'] if p['action'] == 'push' ]
+
+        for s in slaves:
             if s['type'] == 'local':
                 table.append([s['name'], s['action'], s['type'], s["path"], s['uuid']+'/'+s['relpath']])
             elif s['type'] == 'ssh':
