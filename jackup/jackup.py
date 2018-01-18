@@ -24,6 +24,9 @@ def is_jackup_repo(config):
     return os.path.isfile(config['file'])
 
 def jackup_repo_or_die(config):
+    """
+    Exits program if we are not in a jackup repository
+    """
     if not is_jackup_repo(config):
         print("This is not a jackup repository.")
         print("use 'jackup init' to initialize")
