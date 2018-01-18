@@ -311,19 +311,19 @@ def sync(config):
     pulls = 0
     pushes = 0
 
-    to_pull = [ p for p in jackup_json['slaves'] if p['action'] == 'pull' ]
-    for pu in to_pull:
-        print('trying to pull from ' + pu['name'])
-        if sync_slave(config, pu):
+    to_pull = [ slave for slave in jackup_json['slaves'] if slave['action'] == 'pull' ]
+    for slave in to_pull:
+        print('trying to pull from ' + slave['name'])
+        if sync_slave(config, slave):
             pulls += 1
 
     if any(to_pull) and pulls == 0:
         print('failed to pull any slaves')
 
-    to_push = [ p for p in jackup_json['slaves'] if p['action'] == 'push' ]
-    for pu in to_push:
-        print('trying to push to ' + pu['name'])
-        if sync_slave(config, pu):
+    to_push = [ slave for slave in jackup_json['slaves'] if slave['action'] == 'push' ]
+    for slave in to_push:
+        print('trying to push to ' + slave['name'])
+        if sync_slave(config, slave):
             pushes += 1
 
     if any(to_push) and pushes == 0:
