@@ -8,14 +8,14 @@ import subprocess
 import tableprinter as tp
 
 def mountpoint_from_uuid(uuid):
-    """Returns the path where a device with UUID is mounted, if it is not
-    mounted, then return empty."""
+    """
+    Returns the path where a device with UUID is mounted.
+    If the device is not mounted, then return the empty string.
+    """
     cmd_findmnt = subprocess.run(["findmnt", "-rn", "-S", "UUID=" + uuid, "-o", "TARGET"], stdout=subprocess.PIPE)
-    # convert from byte-string, and remove the new-lines
     return str(cmd_findmnt.stdout, 'utf-8', 'ignore').strip()
 
-uuids = ["28B88482B884506C", "027E2FC17E2FAC7B"]
-
+# uuids = ["28B88482B884506C", "027E2FC17E2FAC7B"]
 # for uuid in uuids:
 #     mnt_point = mountpoint_from_uuid(uuid)
 #     if mnt_point:
@@ -23,20 +23,24 @@ uuids = ["28B88482B884506C", "027E2FC17E2FAC7B"]
 #     else:
 #         print(uuid + " is not mounted")
 
-def uuid_relpath_pair_from_path(path):
-    # print("= path: " + path)
 
+
+
+def uuid_relpath_pair_from_path(path):
+    """
+    Generates a (UUID, relative path) pair from a path on the file system.
+    This is done by figuring out which device the path belongs to, and then
+    finding its mountpoint, the relative path is then calculated based on where
+    the device is mounted.
+    """
     cmd_df = subprocess.run(['df', '--output=source', path], stdout=subprocess.PIPE)
     device = str(cmd_df.stdout, 'utf-8', 'ignore')[10:].strip()
-    # print("= device: " + device)
 
     cmd_lsblk = subprocess.run(['lsblk', '-f', device, '-oUUID'], stdout=subprocess.PIPE)
     uuid = str(cmd_lsblk.stdout, 'utf-8', 'ignore')[4:].strip()
-    # print("= uuid: " + uuid)
 
     cmd_mountpoint = subprocess.run(['lsblk', '-f', device, '-oMOUNTPOINT'], stdout=subprocess.PIPE)
     mountpoint = str(cmd_mountpoint.stdout, 'utf-8', 'ignore')[10:].strip()
-    # print("= mountpoint: " + mountpoint)
 
     uuid_relative_path = path
     if path.startswith(mountpoint):
@@ -44,22 +48,34 @@ def uuid_relpath_pair_from_path(path):
 
     return (uuid, uuid_relative_path)
 
-paths = ["/mnt/extern/images", "/home/jens/test"]
-
+# paths = ["/mnt/extern/images", "/home/jens/test"]
 # for p in paths:
 #     print(uuid_relpath_pair_from_path(p))
 
+
+
+
 def path_from_uuid_relpath(uuid, relpath):
+    """
+    Reifies a filesystem path from a (UUID, relative path) pair.
+    This is done by finding the mountpoint of the device belonging to the UUID, then
+    glueing the relative path onto mountpoint.
+    """
     mnt_point = mountpoint_from_uuid(uuid)
     return os.path.join(mnt_point, relpath)
 
-uuid_paths = [["027E2FC17E2FAC7B", "images"],
-              ["d047f2a2-6a9b-4f9c-9c3b-bd3c418babe9", "home/jens/vault"]]
-
+# uuid_paths = [["027E2FC17E2FAC7B", "images"],
+#               ["d047f2a2-6a9b-4f9c-9c3b-bd3c418babe9", "home/jens/vault"]]
 # for uu,pp in uuid_paths:
 #     print(uu + " + " + pp + " = " + path_from_uuid_relpath(uu,pp))
 
+
+
+
 def get_config():
+    """
+    Returns the config by reading the config file.
+    """
     repo_dir = os.path.join(os.getcwd())
     jackup_dir = os.path.join(repo_dir, ".jackup")
     jackup_file = os.path.join(jackup_dir, "jackup.json")
@@ -68,10 +84,17 @@ def get_config():
     return (repo_dir, jackup_dir, jackup_file, jackup_log)
 
 def is_jackup_repo():
+    """
+    Returns whether the current working directory is a valid repository.
+    """
     _, _, jackup_file, _ = get_config()
     return os.path.isfile(jackup_file)
 
 def init():
+    """
+    Handler for `jackup init`.
+    Initializes a new repository in the current working directory.
+    """
     repo_dir, jackup_dir, jackup_file, jackup_log = get_config()
 
     if is_jackup_repo():
@@ -84,12 +107,24 @@ def init():
             json.dump({ "master": os.getcwd(), "slaves": [] }, jackup_db)
 
 def can_connect(host, port):
-    cmd_ssh = subprocess.run(['ssh', '-p', port, host, 'exit 0'])
+    """
+    Returns whether we can connect to a host through ssh.
+    """
 
     # 0 means no errors, c-style.
     return not cmd_ssh.returncode
 
 def add(push, pull, ssh, port, name, path):
+    """
+    Handler for `jackup add`.
+    Adds a new slave to the repository.
+
+    A slave can either be a local folder, or a folder on some remote machine
+    reachable through ssh.
+    It can also be either a push, or a pull slave, based on whether we want to
+    push the contents of the master directory to the slave, or pull the contents
+    of the slave down to the master directory.
+    """
     repo_dir, jackup_dir, jackup_file, jackup_log = get_config()
 
     port = str(port)
@@ -140,6 +175,9 @@ def add(push, pull, ssh, port, name, path):
     print("added slave " + '<'+name+'>')
 
 def remove(name):
+    """
+    Remove a slave from the repository.
+    """
     repo_dir, jackup_dir, jackup_file, jackup_log = get_config()
 
     if not is_jackup_repo():
@@ -155,14 +193,10 @@ def remove(name):
         print('<'+name+'>' + " is not in the repository")
         return
 
-    removed = False
     for s in jackup_json['slaves']:
         if (s["name"] == name):
             jackup_json['slaves'].remove(s)
-            removed = True
             break
-
-    # jackup_json['slaves'].remove(str(path))
 
     with open(jackup_file, 'w') as jackup_db:
         json.dump(jackup_json, jackup_db)
@@ -170,6 +204,9 @@ def remove(name):
     print("removed slave " + '<'+name+'>')
 
 def list():
+    """
+    List all slaves in the repository.
+    """
     repo_dir, jackup_dir, jackup_file, jackup_log = get_config()
 
     if not is_jackup_repo():
@@ -200,6 +237,9 @@ def list():
         tp.print_table(table)
 
 def sync_path_local(slave):
+    """
+    Returns the local filesystem path to the slave.
+    """
     repo_dir, jackup_dir, jackup_file, jackup_log = get_config()
 
     mnt_point = mountpoint_from_uuid(slave['uuid'])
@@ -211,8 +251,9 @@ def sync_path_local(slave):
     return path_from_uuid_relpath(slave['uuid'], slave['relpath'])
 
 def sync_path_ssh(slave):
-    repo_dir, jackup_dir, jackup_file, jackup_log = get_config()
-
+    """
+    Returns the remote path to the slave.
+    """
     if not can_connect(slave['host'], slave['port']):
         print(slave['name'] + " unable to connect to " + slave['host'] + ", skipping.")
         return
@@ -221,6 +262,9 @@ def sync_path_ssh(slave):
     return slave['host'] + ":" + slave['path']
 
 def rsync(slave, source, dest):
+    """
+    Calls rsync to sync the master directory and the slave.
+    """
     repo_dir, jackup_dir, jackup_file, jackup_log = get_config()
 
     rsync_args = ['--exclude=.jackup',
@@ -244,6 +288,9 @@ def rsync(slave, source, dest):
     return str(cmd_rsync.stdout, 'utf-8', 'ignore').strip()
 
 def sync_slave(slave):
+    """
+    Figures out whether to pull or push a slave, and delegates syncing to `rsync`.
+    """
     repo_dir, jackup_dir, jackup_file, jackup_log = get_config()
 
     if slave['type'] == 'local':
@@ -268,6 +315,12 @@ def sync_slave(slave):
     return True
 
 def sync():
+    """
+    Handler for `jackup sync`.
+    Starts syncing the master directory with its slaves.
+    Starts with pulling all available pull-slaves into the master, then pushing the
+    master to all push-slaves.
+    """
     repo_dir, jackup_dir, jackup_file, jackup_log = get_config()
 
     if not is_jackup_repo():
