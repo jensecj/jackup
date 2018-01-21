@@ -50,6 +50,3 @@ def main():
     args = vars(args)
     func = args.pop("func")
     func(config, **args)
-
-if __name__ == "__main__":
-    main()

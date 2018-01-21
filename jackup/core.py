@@ -5,15 +5,6 @@ import subprocess
 import jackup.tableprinter as tp
 import jackup.sysutils as su
 
-def can_connect(host, port):
-    """
-    Returns whether we can connect to a host through ssh.
-    """
-    cmd_ssh = subprocess.run(['ssh', '-p', port, host, 'exit 0'])
-
-    # 0 means no errors, c-style.
-    return not cmd_ssh.returncode
-
 def is_jackup_repo(config):
     """
     Returns whether the current working directory is a valid repository.
@@ -75,7 +66,7 @@ def add(config, push, pull, ssh, port, name, path):
         type = "ssh"
         host, path = path.rsplit(':')
 
-        if not can_connect(host, str(port)):
+        if not su.ssh_can_connect(host, str(port)):
             print("unable to connect to " + host)
             return
     else:
@@ -165,7 +156,7 @@ def _path_to_ssh_slave(slave):
     """
     Returns the remote path to the slave.
     """
-    if not can_connect(slave['host'], slave['port']):
+    if not su.ssh_can_connect(slave['host'], slave['port']):
         return
 
     return slave['host'] + ":" + slave['path']

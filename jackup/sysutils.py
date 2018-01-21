@@ -1,6 +1,15 @@
 import os
 import subprocess
 
+def ssh_can_connect(host, port):
+    """
+    Returns whether we can connect to a host through ssh.
+    """
+    cmd_ssh = subprocess.run(['ssh', '-p', port, host, 'exit 0'])
+
+    # 0 means no errors, c-style.
+    return not cmd_ssh.returncode
+
 def mountpoint_from_uuid(uuid):
     """
     Returns the path where a device with UUID is mounted.
