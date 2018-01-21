@@ -1,4 +1,10 @@
+import sys
 from setuptools import setup
+
+version = sys.version_info[:2]
+if version < (3, 6):
+    print('jackup requires Python version 3.6 or later' + ' ({}.{} detected).'.format(*version))
+    sys.exit(-1)
 
 setup(name='jackup',
       version='0.1',
