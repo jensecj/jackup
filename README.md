@@ -50,7 +50,7 @@ jackup add local_bu --push /mnt/extern/backups
 jackup add serv_bu --push --ssh --port 22 stuetop@192.168.0.40:/home/stuetop/JENS/backups
 ```
 
-And then i just have `(cd /home/jens/master; jackup sync)` running in a cropjob.
+And then i just have `(cd /home/jens/master; jackup sync)` running in a cronjob.
 
 Behind the scenes, Jackup uses rsync to synchronize the master folder and
 the slaves, so transfers are incremental and compressed.
@@ -70,7 +70,7 @@ $ jackup init
 
 Adding a slave to the repository:
 ```bash
-$ jackup add <name> [--ssh] [--port N] [--push / --pull] <path>
+$ jackup add <name> [--push / --pull] [--ssh] [--port N] <path>
 ```
 the name is the qualifier you're going to use to refer to the slave in the
 future.
