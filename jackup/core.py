@@ -198,13 +198,14 @@ def _sync_slave(config, slave):
             printer.success(slave['name'] + ' found at ' + sync_path + ", syncing...")
         else:
             printer.warning(slave['name'] + ' is not mounted, skipping')
+            return False
     elif slave['type'] == 'ssh':
         sync_path = _path_to_ssh_slave(slave)
         if sync_path:
             printer.success(slave['name'] + ' is online, syncing...')
         else:
             printer.warning(slave['name'] + " unable to connect to " + slave['host'] + ", skipping.")
-            return
+            return False
 
     if slave['action'] == 'pull':
         rsync_stderr = _rsync(config, slave, sync_path, config['master'])
