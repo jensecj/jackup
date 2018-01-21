@@ -1,6 +1,6 @@
 from setuptools import setup
 
-setup(name='Jackup',
+setup(name='jackup',
       version='0.1',
       description='Simple synchronization',
       url='http://github.com/jensecj/jackup',
@@ -10,6 +10,4 @@ setup(name='Jackup',
       entry_points = {
           'console_scripts': ['jackup=jackup.cli:main'],
       },
-      setup_requires=['pytest-runner'],
-      tests_require=['pytest'],
       zip_safe=False)
