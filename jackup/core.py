@@ -191,6 +191,7 @@ def _rsync(config, slave, source, dest):
 def _sync_slave(config, slave):
     """
     Figures out whether to pull or push a slave, and delegates syncing to `rsync`.
+    Returns True if synching succeeded, False otherwise.
     """
     if slave['type'] == 'local':
         sync_path = _path_to_local_slave(slave)
