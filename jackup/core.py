@@ -232,6 +232,14 @@ def sync(config):
     """
     jackup_repo_or_die(config)
 
+    # only try syncing if we can lock the repository
+    if not os.path.isfile(config['lock']):
+        # create the lock when we acquire it
+        open(config['lock'], 'w').close()
+    else:
+        printer.error("Jackup sync is already running in this repository.")
+        return
+
     print("Syncing master: " + config['master'])
 
     with open(config['file'], 'r') as jackup_db:
@@ -240,6 +248,7 @@ def sync(config):
     pulls = 0
     pushes = 0
 
+    # first we try to pull from all pull-slaves into the master directory
     to_pull = [ slave for slave in jackup_json['slaves'] if slave['action'] == 'pull' ]
     for slave in to_pull:
         print('trying to pull from ' + slave['name'])
@@ -249,6 +258,7 @@ def sync(config):
     if any(to_pull) and pulls == 0:
         printer.error('failed to pull any slaves')
 
+    # then we try to push from the master directory to all push-slaves
     to_push = [ slave for slave in jackup_json['slaves'] if slave['action'] == 'push' ]
     for slave in to_push:
         print('trying to push to ' + slave['name'])
@@ -258,6 +268,10 @@ def sync(config):
     if any(to_push) and pushes == 0:
         printer.error('failed to push any slaves')
 
+    # free the sync lock
+    os.remove(config['lock'])
+
+    # print results
     pulls_string = str(pulls) + " / " + str(len(to_pull)) + " pulls"
     pushes_string = str(pushes) + " / " + str(len(to_push)) + " pushes"
 

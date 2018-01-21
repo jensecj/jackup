@@ -43,8 +43,15 @@ def main():
     jackup_dir = os.path.join(master_dir, ".jackup")
     jackup_file = os.path.join(jackup_dir, "json")
     jackup_log = os.path.join(jackup_dir, "log")
+    jackup_lock = os.path.join(jackup_dir, "lock")
 
-    config = { 'master': master_dir, 'dir': jackup_dir, 'file': jackup_file, 'log': jackup_log }
+    config = {
+        'master': master_dir,
+        'dir': jackup_dir,
+        'file': jackup_file,
+        'log': jackup_log,
+        'lock': jackup_lock
+    }
 
     # delegate to relevant functions based on parsed args
     args = vars(args)
