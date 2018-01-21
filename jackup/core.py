@@ -175,8 +175,8 @@ def _rsync(config, slave, source, dest):
                   '--checksum',
                   # '--quiet',
                   '--verbose',
-                  '--dry-run',
-                  # '--delete'
+                  # '--dry-run',
+                  '--delete'
     ]
 
     if slave['type'] == 'ssh':
