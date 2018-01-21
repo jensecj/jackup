@@ -4,6 +4,7 @@ import subprocess
 
 import jackup.tableprinter as tp
 import jackup.sysutils as su
+import jackup.printhelper as printer
 
 def is_jackup_repo(config):
     """
@@ -195,15 +196,15 @@ def _sync_slave(config, slave):
     if slave['type'] == 'local':
         sync_path = _path_to_local_slave(slave)
         if sync_path:
-            print(slave['name'] + ' found at ' + sync_path + ", syncing...")
+            printer.success(slave['name'] + ' found at ' + sync_path + ", syncing...")
         else:
-            print(slave['name'] + ' is not mounted, skipping')
+            printer.warning(slave['name'] + ' is not mounted, skipping')
     elif slave['type'] == 'ssh':
         sync_path = _path_to_ssh_slave(slave)
         if sync_path:
-            print(slave['name'] + ' is online, syncing...')
+            printer.success(slave['name'] + ' is online, syncing...')
         else:
-            print(slave['name'] + " unable to connect to " + slave['host'] + ", skipping.")
+            printer.warning(slave['name'] + " unable to connect to " + slave['host'] + ", skipping.")
             return
 
     # skip if slave is unavailable
@@ -219,11 +220,11 @@ def _sync_slave(config, slave):
         print(rsync_output)
 
     if rsync_stderr:
-        print('failed syncing ' + slave['name'])
+        printer.error('failed syncing ' + slave['name'])
         print(rsync_stderr)
         return False
 
-    print('done syncing ' + slave['name'])
+    printer.success('completed syncing ' + slave['name'])
     return True
 
 def sync(config):
@@ -250,7 +251,7 @@ def sync(config):
             pulls += 1
 
     if any(to_pull) and pulls == 0:
-        print('failed to pull any slaves')
+        printer.error('failed to pull any slaves')
 
     to_push = [ slave for slave in jackup_json['slaves'] if slave['action'] == 'push' ]
     for slave in to_push:
@@ -259,4 +260,23 @@ def sync(config):
             pushes += 1
 
     if any(to_push) and pushes == 0:
-        print('failed to push any slaves')
+        printer.error('failed to push any slaves')
+
+    pulls_string = str(pulls) + " / " + str(len(to_pull)) + " pulls"
+    pushes_string = str(pushes) + " / " + str(len(to_push)) + " pushes"
+
+    if len(to_pull) > 0 and pulls == 0:
+        pulls_string = printer.RED(pulls_string)
+    elif len(to_pull) > 0 and pulls < len(to_pull):
+        pulls_string = printer.YELLOW(pulls_string)
+    else:
+        pulls_string = printer.GREEN(pulls_string)
+
+    if len(to_push) > 0 and pushes == 0:
+        pushes_string = printer.RED(pushes_string)
+    elif len(to_push) > 0 and pushes < len(to_push):
+        pushes_string = printer.YELLOW(pushes_string)
+    else:
+        pushes_string = printer.GREEN(pushes_string)
+
+    print('syncing complete: ' + pulls_string + ', ' + pushes_string)
