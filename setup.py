@@ -10,4 +10,6 @@ setup(name='Jackup',
       entry_points = {
           'console_scripts': ['jackup=jackup.cli:main'],
       },
+      setup_requires=['pytest-runner'],
+      tests_require=['pytest'],
       zip_safe=False)
