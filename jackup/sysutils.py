@@ -1,5 +1,4 @@
 import os
-import sys
 import subprocess
 
 def mountpoint_from_uuid(uuid):
