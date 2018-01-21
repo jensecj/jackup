@@ -5,8 +5,6 @@ group: travis_latest
 python:
   - "3.6"
 
-before_install: python --version
-
 install:
   - pip install .
   - pip install -r requirements.txt
