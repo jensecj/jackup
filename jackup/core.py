@@ -206,10 +206,6 @@ def _sync_slave(config, slave):
             printer.warning(slave['name'] + " unable to connect to " + slave['host'] + ", skipping.")
             return
 
-    # skip if slave is unavailable
-    if not sync_path:
-        return False
-
     if slave['action'] == 'pull':
         rsync_stderr = _rsync(config, slave, sync_path, config['master'])
     elif slave['action'] == 'push':
