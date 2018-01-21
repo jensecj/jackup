@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/jensecj/jackup.svg?branch=master)](https://travis-ci.org/jensecj/jackup)
+
 # What is Jackup?
 Jackup is a simple file synchronizer.
 
@@ -113,10 +115,7 @@ serv_bu    | push   | ssh   | /home/stuetop/JENS/backups | stuetop@192.168.0.40/
 
 # Installation
 
-There is no way to install Jackup yet.
-
-One way to use it is to clone the repo, symlink `jackup.py` to
-`/usr/bin/jackup`.
+Clone the repo and run `pip install . && pip install -r requirements.txt`.
 
 Remember to install the prerequisites:
 
