@@ -184,10 +184,9 @@ def _rsync(config, slave, source, dest):
         rsync_args += ['-e', 'ssh -p' + slave['port']]
         rsync_args += ['--port', slave['port']]
 
-    cmd_rsync = subprocess.run(['rsync'] + rsync_args + [source, dest], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    rsync_stdout = str(cmd_rsync.stdout, 'utf-8', 'ignore').strip()
+    cmd_rsync = subprocess.run(['rsync'] + rsync_args + [source, dest], stderr=subprocess.PIPE)
     rsync_stderr = str(cmd_rsync.stderr, 'utf-8', 'ignore').strip()
-    return (rsync_stdout, rsync_stderr)
+    return rsync_stderr
 
 def _sync_slave(config, slave):
     """
@@ -212,12 +211,9 @@ def _sync_slave(config, slave):
         return False
 
     if slave['action'] == 'pull':
-        rsync_output, rsync_stderr = _rsync(config, slave, sync_path, config['master'])
+        rsync_stderr = _rsync(config, slave, sync_path, config['master'])
     elif slave['action'] == 'push':
-        rsync_output, rsync_stderr = _rsync(config, slave, config['master'], sync_path)
-
-    if rsync_output:
-        print(rsync_output)
+        rsync_stderr = _rsync(config, slave, config['master'], sync_path)
 
     if rsync_stderr:
         printer.error('failed syncing ' + slave['name'])
