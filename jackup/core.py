@@ -37,7 +37,7 @@ def init(config):
 
     print("Initialized a new repository in " + config['master'])
 
-def add(config, push, pull, ssh, port, name, path):
+def add(config, action, ssh, port, name, path):
     """
     Handler for `jackup add`.
     Adds a new slave to the repository.
@@ -57,11 +57,6 @@ def add(config, push, pull, ssh, port, name, path):
     if (name in names):
         print("that name already exists in the repository")
         return
-
-    if push:
-        action = 'push'
-    elif pull:
-        action = 'pull'
 
     if ssh:
         type = "ssh"

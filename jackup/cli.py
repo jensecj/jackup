@@ -14,10 +14,10 @@ def main():
 
     add_parser = subparsers.add_parser("add", help="Add a slave to repository")
     group = add_parser.add_mutually_exclusive_group(required=True)
-    group.add_argument('--push', action='store_true', help="push masters content to the slave")
-    group.add_argument('--pull', action='store_true', help="pull content from slave down to master")
     add_parser.add_argument('--ssh', action='store_true', help="if the slave in on a remote machine")
     add_parser.add_argument('--port', type=int, default=22, help="port used to connect to remote machine")
+    group.add_argument('--pull', dest="action", action='store_const', const='pull', help="pull content from slave down to master")
+    group.add_argument('--push', dest="action", action='store_const', const='push', help="push masters content to the slave")
     add_parser.add_argument("name", help="name of the slave to add to the repository")
     add_parser.add_argument("path", help="directory used to sync with master")
     add_parser.set_defaults(func=add)
