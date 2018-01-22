@@ -173,7 +173,7 @@ def _paths_to_slave(config, slave):
 
     return (src, dest)
 
-def _rsync(config, slave, path, dest):
+def _rsync(config, slave, src, dest):
     """
     Calls rsync to sync the master directory and the slave.
     """
@@ -195,7 +195,7 @@ def _rsync(config, slave, path, dest):
         rsync_args += ['-e', 'ssh -p' + slave['port']]
         rsync_args += ['--port', slave['port']]
 
-    cmd_rsync = subprocess.run(['rsync'] + rsync_args + [path, dest], stderr=subprocess.PIPE)
+    cmd_rsync = subprocess.run(['rsync'] + rsync_args + [src, dest], stderr=subprocess.PIPE)
     rsync_stderr = str(cmd_rsync.stderr, 'utf-8', 'ignore').strip()
     return rsync_stderr
 
