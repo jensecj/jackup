@@ -37,7 +37,7 @@ def init(config):
 
     print("Initialized a new repository in " + config['master'])
 
-def add(config, action, ssh, port, name, path):
+def add(config, action, name, path, subdir, port):
     """
     Handler for `jackup add`.
     Adds a new slave to the repository.
@@ -58,17 +58,19 @@ def add(config, action, ssh, port, name, path):
         print("that name already exists in the repository")
         return
 
-    if ssh:
+    if port:
         type = "ssh"
-        host, path = path.rsplit(':')
+        host, relpath = path.rsplit(':')
     else:
         type = "local"
 
-    new_slave = { "name": name, "action": action, "type": type, "path": path }
+    new_slave = { "name": name, "action": action, "type": type }
 
     if type == "ssh":
         new_slave['host'] = host
         new_slave['port'] = str(port)
+        new_slave['relpath'] = relpath
+        new_slave['subdir'] = subdir
     elif type == 'local':
         uuid, relpath = su.uuid_relpath_pair_from_path(path)
         new_slave['uuid'] = uuid
@@ -120,17 +122,17 @@ def list(config):
         print("use 'jackup add <path>' to add some")
         return
 
-    print("MASTER: " + config['master'] + " will duplicate to:")
-    table = [['name', 'action', 'type', 'path', 'uuid/relpath / host/port']]
+    table = [['name', 'action', 'type', 'UUID / host', 'relative path']]
 
+    # sort slaves first by pull, the by push
     slaves = [ slave for slave in jackup_json['slaves'] if slave['action'] == 'pull' ]
     slaves += [ slave for slave in jackup_json['slaves'] if slave['action'] == 'push' ]
 
     for slave in slaves:
         if slave['type'] == 'local':
-            table.append([slave['name'], slave['action'], slave['type'], slave["path"], slave['uuid']+'/'+slave['relpath']])
+            table.append([slave['name'], slave['action'], slave['type'], slave['uuid'], slave["relpath"]])
         elif slave['type'] == 'ssh':
-            table.append([slave['name'], slave['action'], slave['type'], slave["path"], slave['host']+'/'+slave['port']])
+            table.append([slave['name'], slave['action'], slave['type'], slave['host'], slave["relpath"]])
 
     tp.print_table(table)
 
@@ -151,9 +153,27 @@ def _path_to_ssh_slave(slave):
     if not su.ssh_can_connect(slave['host'], slave['port']):
         return
 
-    return slave['host'] + ":" + slave['path']
+    return slave['host'] + ":" + slave['relpath']
 
-def _rsync(config, slave, source, dest):
+def _paths_to_slave(config, slave):
+    if slave['action'] == 'pull':
+        if slave['type'] == 'local':
+            src = _path_to_local_slave(slave)
+        elif slave['type'] == 'ssh':
+            src = _path_to_ssh_slave(slave)
+
+        dest = os.path.join(config['master'], slave['subdir'])
+    elif slave['action'] == 'push':
+        src = config['master']
+
+        if slave['type'] == 'local':
+            dest = _path_to_local_slave(slave)
+        elif slave['type'] == 'ssh':
+            dest = _path_to_ssh_slave(slave)
+
+    return (src, dest)
+
+def _rsync(config, slave, path, dest):
     """
     Calls rsync to sync the master directory and the slave.
     """
@@ -161,7 +181,7 @@ def _rsync(config, slave, source, dest):
                   '--log-file=' + config['log'],
                   '--partial', '--progress', '--archive',
                   '--recursive', '--human-readable',
-                  '--timeout=30',
+                  #'--timeout=30',
                   '--copy-links',
                   '--new-compress',
                   '--checksum',
@@ -175,7 +195,7 @@ def _rsync(config, slave, source, dest):
         rsync_args += ['-e', 'ssh -p' + slave['port']]
         rsync_args += ['--port', slave['port']]
 
-    cmd_rsync = subprocess.run(['rsync'] + rsync_args + [source, dest], stderr=subprocess.PIPE)
+    cmd_rsync = subprocess.run(['rsync'] + rsync_args + [path, dest], stderr=subprocess.PIPE)
     rsync_stderr = str(cmd_rsync.stderr, 'utf-8', 'ignore').strip()
     return rsync_stderr
 
@@ -184,29 +204,21 @@ def _sync_slave(config, slave):
     Figures out whether to pull or push a slave, and delegates syncing to `rsync`.
     Returns True if synching succeeded, False otherwise.
     """
-    if slave['type'] == 'local':
-        sync_path = _path_to_local_slave(slave)
-        if sync_path:
-            printer.success(slave['name'] + ' found at ' + sync_path + ", syncing...")
-        else:
-            printer.warning(slave['name'] + ' is not mounted, skipping')
-            return False
-    elif slave['type'] == 'ssh':
-        sync_path = _path_to_ssh_slave(slave)
-        if sync_path:
-            printer.success(slave['name'] + ' is online, syncing...')
-        else:
-            printer.warning(slave['name'] + " unable to connect to " + slave['host'] + ", skipping.")
-            return False
+    (src, dest) = _paths_to_slave(config, slave)
 
-    if slave['action'] == 'pull':
-        rsync_stderr = _rsync(config, slave, sync_path, config['master'])
-    elif slave['action'] == 'push':
-        rsync_stderr = _rsync(config, slave, config['master'], sync_path)
+    if not src or not dest:
+        printer.warning("unable to locate " + slave['name'] + ", skipping.")
+        return False
+
+    printer.success("found " + slave['name'] + ', syncing...')
+
+    printer.success(slave['name'] + ": " + src + ' -> ' + dest)
+
+    rsync_stderr = _rsync(config, slave, src, dest)
 
     if rsync_stderr:
         printer.error('failed syncing ' + slave['name'])
-        print(rsync_stderr)
+        printer.error(rsync_stderr)
         return False
 
     printer.success('completed syncing ' + slave['name'])

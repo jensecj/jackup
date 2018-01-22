@@ -1,3 +1,5 @@
+import sys
+
 class TC:
     CSI = '\x1B['
     BOLD = CSI + '1m'
@@ -12,7 +14,7 @@ def success(string):
     print(TC.BOLD + TC.GREEN + string + TC.RESET)
 
 def error(string):
-    print(TC.BOLD + TC.RED + string + TC.RESET)
+    print(TC.BOLD + TC.RED + string + TC.RESET, file=sys.stderr)
 
 def warning(string):
     print(TC.BOLD + TC.YELLOW + string + TC.RESET)
