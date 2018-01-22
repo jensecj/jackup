@@ -66,10 +66,6 @@ def add(config, push, pull, ssh, port, name, path):
     if ssh:
         type = "ssh"
         host, path = path.rsplit(':')
-
-        if not su.ssh_can_connect(host, str(port)):
-            print("unable to connect to " + host)
-            return
     else:
         type = "local"
 
