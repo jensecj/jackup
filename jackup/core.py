@@ -33,7 +33,7 @@ def init(config):
     os.mkdir(config['dir'])
 
     with open(config['file'], 'w') as jackup_db:
-        json.dump({ "master": config['master'], "slaves": [] }, jackup_db)
+        json.dump({ "master": config['master'], "slaves": [] }, jackup_db, indent=4)
 
     print("Initialized a new repository in " + config['master'])
 
@@ -86,7 +86,7 @@ def add(config, push, pull, ssh, port, name, path):
     jackup_json['slaves'].append(new_slave)
 
     with open(config['file'], 'w') as jackup_db:
-        json.dump(jackup_json, jackup_db)
+        json.dump(jackup_json, jackup_db, indent=4)
 
     print("added slave " + name)
 
@@ -110,7 +110,7 @@ def remove(config, name):
             break
 
     with open(config['file'], 'w') as jackup_db:
-        json.dump(jackup_json, jackup_db)
+        json.dump(jackup_json, jackup_db, indent=4)
 
     print("removed slave " + name)
 
