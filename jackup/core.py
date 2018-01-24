@@ -6,38 +6,14 @@ import jackup.tableprinter as tp
 import jackup.sysutils as su
 import jackup.printhelper as printer
 
-def is_jackup_repo(config):
-    """
-    Returns whether the current working directory is a valid repository.
-    """
-    return os.path.isfile(config['file'])
+def is_jackup_profile(profile):
+    path = os.path.join(config['master'], profile + '.json')
+    return os.path.isfile(path)
 
-def jackup_repo_or_die(config):
-    """
-    Exits program if we are not in a jackup repository
-    """
-    if not is_jackup_repo(config):
-        print("This is not a jackup repository.")
-        print("use 'jackup init' to initialize")
-        exit(1)
+def add(config, profile, name, source, destination, port):
+    pass
 
-def init(config):
-    """
-    Handler for `jackup init`.
-    Initializes a new repository in the current working directory.
-    """
-    if is_jackup_repo(config):
-        print("This is already a jackup repository!")
-        return
-
-    os.mkdir(config['dir'])
-
-    with open(config['file'], 'w') as jackup_db:
-        json.dump({ "master": config['master'], "slaves": [] }, jackup_db, indent=4)
-
-    print("Initialized a new repository in " + config['master'])
-
-def add(config, action, name, path, subdir, port):
+def add2(config, action, name, path, subdir, port):
     """
     Handler for `jackup add`.
     Adds a new slave to the repository.
@@ -48,8 +24,6 @@ def add(config, action, name, path, subdir, port):
     push the contents of the master directory to the slave, or pull the contents
     of the slave down to the master directory.
     """
-    jackup_repo_or_die(config)
-
     with open(config['file'], 'r') as jackup_db:
         jackup_json = json.load(jackup_db)
 
@@ -83,12 +57,13 @@ def add(config, action, name, path, subdir, port):
 
     print("added slave " + name)
 
-def remove(config, name):
+def remove(config, profile, name):
+    pass
+
+def remove2(config, name):
     """
     Remove a slave from the repository.
     """
-    jackup_repo_or_die(config)
-
     with open(config['file'], 'r') as jackup_db:
         jackup_json = json.load(jackup_db)
 
@@ -107,12 +82,14 @@ def remove(config, name):
 
     print("removed slave " + name)
 
-def list(config):
+def list(config, profile):
+
+    pass
+
+def list2(config, profile):
     """
     List all slaves in the repository.
     """
-    jackup_repo_or_die(config)
-
     with open(config['file'], 'r') as jackup_db:
         jackup_json = json.load(jackup_db)
         master_path = jackup_json['master']
@@ -135,43 +112,6 @@ def list(config):
             table.append([slave['name'], slave['action'], slave['type'], slave['host'], slave["relpath"]])
 
     tp.print_table(table)
-
-def _path_to_local_slave(slave):
-    """
-    Returns the local filesystem path to the slave.
-    """
-    mnt_point = su.mountpoint_from_uuid(slave['uuid'])
-    if not mnt_point:
-        return
-
-    return su.path_from_uuid_relpath(slave['uuid'], slave['relpath'])
-
-def _path_to_ssh_slave(slave):
-    """
-    Returns the remote path to the slave.
-    """
-    if not su.ssh_can_connect(slave['host'], slave['port']):
-        return
-
-    return slave['host'] + ":" + slave['relpath']
-
-def _paths_to_slave(config, slave):
-    if slave['action'] == 'pull':
-        if slave['type'] == 'local':
-            src = _path_to_local_slave(slave)
-        elif slave['type'] == 'ssh':
-            src = _path_to_ssh_slave(slave)
-
-        dest = os.path.join(config['master'], slave['subdir'])
-    elif slave['action'] == 'push':
-        src = config['master']
-
-        if slave['type'] == 'local':
-            dest = _path_to_local_slave(slave)
-        elif slave['type'] == 'ssh':
-            dest = _path_to_ssh_slave(slave)
-
-    return (src, dest)
 
 def _rsync(config, slave, src, dest):
     """
@@ -204,7 +144,8 @@ def _sync_slave(config, slave):
     Figures out whether to pull or push a slave, and delegates syncing to `rsync`.
     Returns True if synching succeeded, False otherwise.
     """
-    (src, dest) = _paths_to_slave(config, slave)
+    src = slave['source']
+    dest = slave['destination']
 
     if not src or not dest:
         printer.warning("unable to locate " + slave['name'] + ", skipping.")
@@ -224,14 +165,23 @@ def _sync_slave(config, slave):
     printer.success('completed syncing ' + slave['name'])
     return True
 
-def sync(config):
+def sync(config, profile):
+    profile_path = os.path.join(config['master'], profile + '.json')
+
+    if not os.path.isfile(profile_path):
+        printer.error("That profile does not exist.")
+        return
+
+    print('syncing ' + profile)
+
+def sync2(config, profile):
     """
     Handler for `jackup sync`.
     Starts syncing the master directory with its slaves.
     Starts with pulling all available pull-slaves into the master, then pushing the
     master to all push-slaves.
     """
-    jackup_repo_or_die(config)
+
 
     # only try syncing if we can lock the repository
     if not os.path.isfile(config['lock']):
