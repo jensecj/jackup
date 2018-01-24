@@ -1,27 +1,23 @@
 import os
 import sys
 import argparse
+from pathlib import Path
 
-from jackup.core import init, add, remove, list, sync
+from jackup.core import add, remove, list, sync
 
 def version(config):
-    print('Jackup version 0.1 - alpha')
+    print('Jackup version 0.2 - alpha')
 
 def main():
     # setup the parser for commandline usage
     parser = argparse.ArgumentParser(description="Jackup: Simple synchronization.")
     subparsers = parser.add_subparsers()
 
-    init_parser = subparsers.add_parser("init", help="Initialize a new repository")
-    init_parser.set_defaults(func=init)
-
     add_parser = subparsers.add_parser("add", help="Add a slave to repository")
-    group = add_parser.add_mutually_exclusive_group(required=True)
-    group.add_argument('--pull', dest="action", action='store_const', const='pull', help="pull content from slave down to master")
-    group.add_argument('--push', dest="action", action='store_const', const='push', help="push masters content to the slave")
+    add_parser.add_argument("profile", help="profile to add slaves to")
     add_parser.add_argument("name", help="name of the slave to add to the repository")
-    add_parser.add_argument("path", help="directory used to sync with master")
-    add_parser.add_argument("--subdir", default='/', help="subdirectory to pull into")
+    add_parser.add_argument("source", help="source to sync from, can be a directory of file")
+    add_parser.add_argument("destination", help="destination to sync to, can be a directory or file")
     add_parser.add_argument('--ssh', nargs='?', dest="port", type=int, const=22, default=0, help="if the slave in on a remote machine")
     add_parser.set_defaults(func=add)
 
@@ -30,9 +26,11 @@ def main():
     remove_parser.set_defaults(func=remove)
 
     list_parser = subparsers.add_parser("list", aliases=['ls'], help="List all slaves in repository")
+    list_parser.add_argument("profile", nargs='?', help="List all slaves of PROFILE")
     list_parser.set_defaults(func=list)
 
     sync_parser = subparsers.add_parser("sync", help="Synchronizes master and slaves")
+    sync_parser.add_argument("profile", help="Synchronize all slaves of PROFILE")
     sync_parser.set_defaults(func=sync)
 
     version_parser = subparsers.add_parser("--version", aliases=['-v'], help="Prints Jackups version")
@@ -45,16 +43,18 @@ def main():
         parser.print_help()
         return
 
-    master_dir = os.path.join(os.getcwd())
-    jackup_dir = os.path.join(master_dir, ".jackup")
-    jackup_file = os.path.join(jackup_dir, "json")
+    jackup_dir = os.path.join(Path.home(), '.jackup')
     jackup_log = os.path.join(jackup_dir, "log")
     jackup_lock = os.path.join(jackup_dir, "lock")
 
+    print(jackup_dir)
+
+    # create jackup directory if it does not exist
+    if not os.path.isdir(jackup_dir):
+        os.mkdir(jackup_dir)
+
     config = {
-        'master': master_dir,
         'dir': jackup_dir,
-        'file': jackup_file,
         'log': jackup_log,
         'lock': jackup_lock
     }
