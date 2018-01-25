@@ -6,12 +6,34 @@ import jackup.tableprinter as tp
 import jackup.sysutils as su
 import jackup.printhelper as printer
 
-def is_jackup_profile(profile):
-    path = os.path.join(config['master'], profile + '.json')
-    return os.path.isfile(path)
+def _jackup_profile(config, profile):
+    return  os.path.join(config['dir'], profile + '.json')
 
 def add(config, profile, name, source, destination, port):
-    pass
+    print(config)
+    print(profile)
+    print(name)
+    print(source)
+    print(destination)
+    print(port)
+
+    profile_file = _jackup_profile(config, profile)
+    if not os.path.isfile(profile_file):
+        print('profile does not exist, creating')
+        with open(profile_file, 'w') as profile_db:
+            json.dump([], profile_db, indent=4)
+
+    with open(profile_file, 'r') as profile_db:
+        profile_json = json.load(profile_db)
+
+    record = { 'name': name, 'source': source, 'destination': destination }
+
+    profile_json.append(record)
+
+    with open(profile_file, 'w') as profile_db:
+        json.dump(profile_json, profile_db, indent=4)
+
+    print("added slave " + name)
 
 def add2(config, action, name, path, subdir, port):
     """
