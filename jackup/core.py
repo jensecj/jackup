@@ -110,8 +110,24 @@ def remove2(config, name):
     print("removed slave " + name)
 
 def list(config, profile):
+    if not profile:
+        print('Profiles:')
+        for file in os.listdir(config['dir']):
+            if file.endswith('.json'):
+                print('* ' + file[:-5])
+        return
 
-    pass
+    profile_file = _jackup_profile(config, profile)
+
+    with open(profile_file, 'r') as profile_db:
+        profile_json = json.load(profile_db)
+
+    table = [['name', 'source', 'destination']]
+
+    for slave in profile_json:
+        table.append([slave['name'], slave['source'], slave['destination']])
+
+    tp.print_table(table)
 
 def list2(config, profile):
     """
