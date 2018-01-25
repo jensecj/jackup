@@ -18,7 +18,7 @@ def _jackup_profile_lock(config, profile):
     """
     return os.path.join(config['dir'], profile + '.lock')
 
-def add(config, profile, name, source, destination, priority, port):
+def add(config, profile, name, source, destination, priority):
     """
     Add a new slave with NAME, to PROFILE.
     SOURCE/DESTINATION can be either local files/folders, or remote locations,
@@ -55,7 +55,7 @@ def add(config, profile, name, source, destination, priority, port):
 
     print("added " + profile + '/' + name)
 
-def edit(config, profile, name, source, destination, priority, port):
+def edit(config, profile, name, source, destination, priority):
     """
     Edit a slave with NAME, in PROFILE.
     Allows changing values of a slave after creation.
