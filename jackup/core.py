@@ -4,7 +4,7 @@ import subprocess
 
 import jackup.tableprinter as tp
 import jackup.sysutils as su
-import jackup.printhelper as printer
+import jackup.logging as logging
 
 def _jackup_profile(config, profile):
     """
@@ -34,7 +34,7 @@ def add(config, profile, name, source, destination, priority, port):
         profile_json = json.load(profile_db)
 
     if name in profile_json:
-        printer.warning('This name is already in use')
+        logging.warning('This name is already in use')
         print('use `jackup edit <profile> <name>` to change settings inside this slave')
         return
 
@@ -62,14 +62,14 @@ def edit(config, profile, name, source, destination, priority, port):
     """
     profile_file = _jackup_profile(config, profile)
     if not os.path.isfile(profile_file):
-        printer.warning('that profile does not exist')
+        logging.warning('that profile does not exist')
         return
 
     with open(profile_file, 'r') as profile_db:
         profile_json = json.load(profile_db)
 
     if not name in profile_json:
-        printer.warning(profile + ' does not have a slave named ' + name)
+        logging.warning(profile + ' does not have a slave named ' + name)
         return
 
     if source:
@@ -92,14 +92,14 @@ def remove(config, profile, name):
     """
     profile_file = _jackup_profile(config, profile)
     if not os.path.isfile(profile_file):
-        printer.warning('that profile does not exist')
+        logging.warning('that profile does not exist')
         return
 
     with open(profile_file, 'r') as profile_db:
         profile_json = json.load(profile_db)
 
     if not name in profile_json:
-        printer.warning(profile + ' does not have a slave named ' + name)
+        logging.warning(profile + ' does not have a slave named ' + name)
         return
 
     profile_json.pop(name)
@@ -123,7 +123,7 @@ def list(config, profile):
 
     profile_file = _jackup_profile(config, profile)
     if not os.path.isfile(profile_file):
-        printer.warning('that profile does not exist')
+        logging.warning('that profile does not exist')
         return
 
     with open(profile_file, 'r') as profile_db:
@@ -160,7 +160,7 @@ def _rsync(config, slave, src, dest, excludes=['.jackup']):
     return rsync_stderr
 
 def _sync_slave(config, slave, record):
-    printer.success(slave + ": " + record['source'] + ' -> ' + record['destination'])
+    logging.success(slave + ": " + record['source'] + ' -> ' + record['destination'])
 
     excludes = []
     ignore_file = os.path.join(record['source'], '.jackupignore')
@@ -172,11 +172,11 @@ def _sync_slave(config, slave, record):
     rsync_stderr = _rsync(config, slave, record['source'], record['destination'], excludes)
 
     if rsync_stderr:
-        printer.error('failed syncing ' + slave)
-        printer.error(rsync_stderr)
+        logging.error('failed syncing ' + slave)
+        logging.error(rsync_stderr)
         return False
 
-    printer.success('completed syncing ' + slave)
+    logging.success('completed syncing ' + slave)
     return True
 
 def sync(config, profile):
@@ -185,7 +185,7 @@ def sync(config, profile):
     """
     profile_file = _jackup_profile(config, profile)
     if not os.path.isfile(profile_file):
-        printer.error("That profile does not exist.")
+        logging.error("That profile does not exist.")
         return
 
     # only try syncing if we can lock the repository
@@ -194,7 +194,7 @@ def sync(config, profile):
         # create the lock when we acquire it
         open(lockfile, 'w').close()
     else:
-        printer.error("`jackup sync` is already running for this profile")
+        logging.error("`jackup sync` is already running for this profile")
         return
 
     with open(profile_file, 'r') as profile_db:
@@ -212,11 +212,11 @@ def sync(config, profile):
     slave_count = str(syncs) + '/' + str(len(sorted_slaves))
 
     if syncs == 0 and len(sorted_slaves) > 0:
-        slave_count = printer.RED(slave_count)
+        slave_count = logging.RED(slave_count)
     elif syncs < len(sorted_slaves):
-        slave_count = printer.YELLOW(slave_count)
+        slave_count = logging.YELLOW(slave_count)
     else:
-        slave_count = printer.GREEN(slave_count)
+        slave_count = logging.GREEN(slave_count)
 
     print('synchronized ' + slave_count + " slaves")
     print('completed syncing ' + profile)
