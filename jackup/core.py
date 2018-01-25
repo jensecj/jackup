@@ -10,13 +10,6 @@ def _jackup_profile(config, profile):
     return  os.path.join(config['dir'], profile + '.json')
 
 def add(config, profile, name, source, destination, port):
-    print(config)
-    print(profile)
-    print(name)
-    print(source)
-    print(destination)
-    print(port)
-
     profile_file = _jackup_profile(config, profile)
     if not os.path.isfile(profile_file):
         print('profile does not exist, creating')
@@ -37,50 +30,6 @@ def add(config, profile, name, source, destination, port):
 
     with open(profile_file, 'w') as profile_db:
         json.dump(profile_json, profile_db, indent=4)
-
-    print("added slave " + name)
-
-def add2(config, action, name, path, subdir, port):
-    """
-    Handler for `jackup add`.
-    Adds a new slave to the repository.
-
-    A slave can either be a local folder, or a folder on some remote machine
-    reachable through ssh.
-    It can also be either a push, or a pull slave, based on whether we want to
-    push the contents of the master directory to the slave, or pull the contents
-    of the slave down to the master directory.
-    """
-    with open(config['file'], 'r') as jackup_db:
-        jackup_json = json.load(jackup_db)
-
-    names = [ slave['name'] for slave in jackup_json['slaves'] ]
-    if (name in names):
-        print("that name already exists in the repository")
-        return
-
-    if port:
-        type = "ssh"
-        host, relpath = path.rsplit(':')
-    else:
-        type = "local"
-
-    new_slave = { "name": name, "action": action, "type": type }
-
-    if type == "ssh":
-        new_slave['host'] = host
-        new_slave['port'] = str(port)
-        new_slave['relpath'] = relpath
-        new_slave['subdir'] = subdir
-    elif type == 'local':
-        uuid, relpath = su.uuid_relpath_pair_from_path(path)
-        new_slave['uuid'] = uuid
-        new_slave['relpath'] = relpath
-
-    jackup_json['slaves'].append(new_slave)
-
-    with open(config['file'], 'w') as jackup_db:
-        json.dump(jackup_json, jackup_db, indent=4)
 
     print("added slave " + name)
 
@@ -126,33 +75,6 @@ def list(config, profile):
 
     for slave in profile_json:
         table.append([slave['name'], slave['source'], slave['destination']])
-
-    tp.print_table(table)
-
-def list2(config, profile):
-    """
-    List all slaves in the repository.
-    """
-    with open(config['file'], 'r') as jackup_db:
-        jackup_json = json.load(jackup_db)
-        master_path = jackup_json['master']
-
-    if not jackup_json['slaves']:
-        print("this repository has no slaves.")
-        print("use 'jackup add <path>' to add some")
-        return
-
-    table = [['name', 'action', 'type', 'UUID / host', 'relative path']]
-
-    # sort slaves first by pull, the by push
-    slaves = [ slave for slave in jackup_json['slaves'] if slave['action'] == 'pull' ]
-    slaves += [ slave for slave in jackup_json['slaves'] if slave['action'] == 'push' ]
-
-    for slave in slaves:
-        if slave['type'] == 'local':
-            table.append([slave['name'], slave['action'], slave['type'], slave['uuid'], slave["relpath"]])
-        elif slave['type'] == 'ssh':
-            table.append([slave['name'], slave['action'], slave['type'], slave['host'], slave["relpath"]])
 
     tp.print_table(table)
 

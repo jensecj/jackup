@@ -47,8 +47,6 @@ def main():
     jackup_log = os.path.join(jackup_dir, "log")
     jackup_lock = os.path.join(jackup_dir, "lock")
 
-    print(jackup_dir)
-
     # create jackup directory if it does not exist
     if not os.path.isdir(jackup_dir):
         os.mkdir(jackup_dir)
