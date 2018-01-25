@@ -26,6 +26,11 @@ def add(config, profile, name, source, destination, port):
     with open(profile_file, 'r') as profile_db:
         profile_json = json.load(profile_db)
 
+    if name in [ n['name'] for n in profile_json if n['name'] == name ]:
+        printer.warning('This name is already in use.')
+        print('use `jackup edit <profile> <name>` to change settings inside this slave.')
+        return
+
     record = { 'name': name, 'source': source, 'destination': destination }
 
     profile_json.append(record)
