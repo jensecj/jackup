@@ -48,6 +48,7 @@ def add(config, profile, name, source, destination, priority):
         else:
             priority = max(priorities) + 1
 
+    # the record kept for each slave in the profile
     profile_json[name] = { 'source': source, 'destination': destination, 'priority': priority }
 
     with open(profile_file, 'w') as profile_db:
@@ -128,6 +129,7 @@ def list(config, profile):
             with open(prof_file, 'r') as profile_db:
                 prof_json = json.load(profile_db)
 
+            # add plural `s` if the profile has more than one slave
             slave_str = 'slave'
             if len(prof_json) > 1:
                 slave_str += 's'
@@ -145,14 +147,20 @@ def list(config, profile):
 
     table = [ ['name', 'source', 'destination', 'priority'] ]
 
-    sorted_slaves = sorted(profile_json, key=lambda k: profile_json[k]['priority'])
+    # sort the slaves by priority, from smallest to largest
+    sorted_slaves = sorted(profile_json, key = lambda k: profile_json[k]['priority'])
 
     for slave in sorted_slaves:
-        table.append([ slave, profile_json[slave]['source'], profile_json[slave]['destination'], str(profile_json[slave]['priority']) ])
+        table.append([ slave, profile_json[slave]['source'],
+                       profile_json[slave]['destination'],
+                       str(profile_json[slave]['priority']) ])
 
     tp.print_table(table)
 
-def _rsync(config, slave, src, dest, excludes=['.jackup']):
+def _rsync(config, slave, src, dest, excludes=[]):
+    """
+    Wrapper for =rsync=, handles syncing SOURCE to DESTINATION.
+    """
     rsync_args = ['--log-file=' + config['log'],
                   '--partial', '--progress', '--archive',
                   '--recursive', '--human-readable',
@@ -166,16 +174,24 @@ def _rsync(config, slave, src, dest, excludes=['.jackup']):
                   '--delete'
     ]
 
+    # include the excludes as rsync ignore rules
     for ex in excludes:
         rsync_args += ['--exclude=' + ex]
 
+    # call the `rsync` tool, capture errors and return them if any.
     cmd_rsync = subprocess.run(['rsync'] + rsync_args + [src, dest], stderr=subprocess.PIPE)
     rsync_stderr = str(cmd_rsync.stderr, 'utf-8', 'ignore').strip()
     return rsync_stderr
 
 def _sync_slave(config, profile, slave, record):
+    """
+    Handles syncing a slaves SOURCE to its DESTINATION.
+    Tries to parse the .jackupignore file if any, and then delegates syncing to
+    `_rsync`.
+    """
     logging.success(slave + ": " + record['source'] + ' -> ' + record['destination'])
 
+    # if a .jackupignore file exists, parse it
     excludes = []
     ignore_file = os.path.join(record['source'], '.jackupignore')
     if os.path.isfile(ignore_file):
@@ -183,8 +199,10 @@ def _sync_slave(config, profile, slave, record):
             for line in ignore_db:
                 excludes.append(line.strip())
 
+    # try syncing the slave
     rsync_stderr = _rsync(config, slave, record['source'], record['destination'], excludes)
 
+    # if any errors were found, log them and exit
     if rsync_stderr:
         logging.error('failed syncing ' + profile + '/' + slave)
         logging.error(rsync_stderr)
@@ -214,15 +232,18 @@ def sync(config, profile):
     with open(profile_file, 'r') as profile_db:
         profile_json = json.load(profile_db)
 
-    sorted_slaves = sorted(profile_json, key=lambda k: profile_json[k]['priority'])
+    sorted_slaves = sorted(profile_json, key = lambda k: profile_json[k]['priority'])
 
+    # keep count of how many slaves succeeded synchronizing
     syncs = 0
 
+    # try syncing the slaves in order
     for slave in sorted_slaves:
         print('syncing ' + slave)
         if _sync_slave(config, profile, slave, profile_json[slave]):
             syncs += 1
 
+    # done syncing, report statistics
     slave_count = str(syncs) + '/' + str(len(sorted_slaves))
 
     if syncs == 0 and len(sorted_slaves) > 0:
