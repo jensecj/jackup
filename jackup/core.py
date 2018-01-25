@@ -116,9 +116,23 @@ def list(config, profile):
     """
     if not profile:
         print('Profiles:')
+
+        profiles = []
         for file in os.listdir(config['dir']):
             if file.endswith('.json'):
-                print('* ' + file[:-5])
+                profiles.append(file[:-5])
+
+        # count the number of slaves in each profile, and print.
+        for prof in profiles:
+            prof_file = os.path.join(config['dir'], prof + '.json')
+            with open(prof_file, 'r') as profile_db:
+                prof_json = json.load(profile_db)
+
+            slave_str = 'slave'
+            if len(prof_json) > 1:
+                slave_str += 's'
+
+            print('* ' + prof + ' (' + str(len(prof_json)) + ' ' + slave_str + ')')
         return
 
     profile_file = _jackup_profile(config, profile)
