@@ -12,6 +12,12 @@ def _jackup_profile(config, profile):
     """
     return os.path.join(config['dir'], profile + '.json')
 
+def _jackup_profile_lock(config, profile):
+    """
+    Returns the path to the profile-lockfile belonging to PROFILE.
+    """
+    return os.path.join(config['dir'], profile + '.lock')
+
 def add(config, profile, name, source, destination, priority, port):
     """
     Add a new slave with NAME, to PROFILE.
@@ -193,6 +199,15 @@ def sync(config, profile):
         printer.error("That profile does not exist.")
         return
 
+    # only try syncing if we can lock the repository
+    lockfile = _jackup_profile_lock(config, profile)
+    if not os.path.isfile(lockfile):
+        # create the lock when we acquire it
+        open(lockfile, 'w').close()
+    else:
+        printer.error("`jackup sync` is already running for this profile")
+        return
+
     with open(profile_file, 'r') as profile_db:
         profile_json = json.load(profile_db)
 
@@ -202,6 +217,9 @@ def sync(config, profile):
         print('syncing ' + slave)
 
     print('completed syncing ' + profile)
+
+    # free the lock for the profile
+    os.remove(lockfile)
 
 def sync2(config, profile):
     """

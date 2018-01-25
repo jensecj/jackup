@@ -65,7 +65,6 @@ def main():
     config = {
         'dir': jackup_dir,
         'log': jackup_log,
-        'lock': jackup_lock
     }
 
     # delegate to relevant functions based on parsed args
