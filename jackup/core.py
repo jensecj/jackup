@@ -138,9 +138,8 @@ def list(config, profile):
 
     tp.print_table(table)
 
-def _rsync(config, slave, src, dest):
-    rsync_args = ['--exclude=.jackup',
-                  '--log-file=' + config['log'],
+def _rsync(config, slave, src, dest, excludes=['.jackup']):
+    rsync_args = ['--log-file=' + config['log'],
                   '--partial', '--progress', '--archive',
                   '--recursive', '--human-readable',
                   #'--timeout=30',
@@ -153,23 +152,19 @@ def _rsync(config, slave, src, dest):
                   '--delete'
     ]
 
-    #     if slave['type'] == 'ssh':
-    #         rsync_args += ['-e', 'ssh -p' + slave['port']]
-    #         rsync_args += ['--port', slave['port']]
+    for ex in excludes:
+        rsync_args += ['--exclude=' + ex]
 
     cmd_rsync = subprocess.run(['rsync'] + rsync_args + [src, dest], stderr=subprocess.PIPE)
     rsync_stderr = str(cmd_rsync.stderr, 'utf-8', 'ignore').strip()
     return rsync_stderr
 
 def _sync_slave(config, slave, record):
-    src = record['source']
-    dest = record['destination']
+    printer.success(slave + ": " + record['source'] + ' -> ' + record['destination'])
 
-    printer.success("found " + slave + ', syncing...')
+    excludes = ['.jackup', '.git', 'env', '__pycache__', '.eggs', '.direnv']
 
-    printer.success(slave + ": " + src + ' -> ' + dest)
-
-    rsync_stderr = _rsync(config, slave, src, dest)
+    rsync_stderr = _rsync(config, slave, record['source'], record['destination'], excludes)
 
     if rsync_stderr:
         printer.error('failed syncing ' + slave)
