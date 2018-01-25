@@ -7,9 +7,17 @@ import jackup.sysutils as su
 import jackup.printhelper as printer
 
 def _jackup_profile(config, profile):
-    return  os.path.join(config['dir'], profile + '.json')
+    """
+    Returns the path to the profile-file belonging to PROFILE.
+    """
+    return os.path.join(config['dir'], profile + '.json')
 
 def add(config, profile, name, source, destination, port):
+    """
+    Add a new slave with NAME, to PROFILE.
+    SOURCE/DESTINATION can be either local files/folders, or remote locations,
+    accessible through ssh.
+    """
     profile_file = _jackup_profile(config, profile)
     if not os.path.isfile(profile_file):
         print('profile does not exist, creating')
@@ -32,6 +40,10 @@ def add(config, profile, name, source, destination, port):
     print("added " + profile + '/' + name)
 
 def edit(config, profile, name, source, destination, port):
+    """
+    Edit a slave with NAME, in PROFILE.
+    Allows changing values of a slave after creation.
+    """
     profile_file = _jackup_profile(config, profile)
     if not os.path.isfile(profile_file):
         printer.warning('that profile does not exist')
@@ -55,8 +67,10 @@ def edit(config, profile, name, source, destination, port):
 
     print("edited " + profile + '/' + name)
 
-
 def remove(config, profile, name):
+    """
+    Remove an existing slave with NAME, from PROFILE.
+    """
     profile_file = _jackup_profile(config, profile)
     if not os.path.isfile(profile_file):
         printer.warning('that profile does not exist')
@@ -77,6 +91,10 @@ def remove(config, profile, name):
     print("removed " + profile + '/' + name)
 
 def list(config, profile):
+    """
+    List all available profiles, or, if given PROFILE, list all slaves in that
+    profile.
+    """
     if not profile:
         print('Profiles:')
         for file in os.listdir(config['dir']):
@@ -152,6 +170,9 @@ def _sync_slave(config, slave):
     return True
 
 def sync(config, profile):
+    """
+    Synchronizes all slaves in PROFILE.
+    """
     profile_path = os.path.join(config['master'], profile + '.json')
 
     if not os.path.isfile(profile_path):
