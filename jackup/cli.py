@@ -30,6 +30,7 @@ def main():
     edit_parser.set_defaults(func=edit)
 
     remove_parser = subparsers.add_parser("remove", aliases=['rm'], help="Remove a slave from repository")
+    remove_parser.add_argument("profile", help="profile to remove slave from")
     remove_parser.add_argument("name", help="name of the slave to remove")
     remove_parser.set_defaults(func=remove)
 

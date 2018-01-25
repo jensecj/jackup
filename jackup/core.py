@@ -20,13 +20,11 @@ def add(config, profile, name, source, destination, port):
         profile_json = json.load(profile_db)
 
     if 'name' in profile_json:
-        printer.warning('This name is already in use.')
-        print('use `jackup edit <profile> <name>` to change settings inside this slave.')
+        printer.warning('This name is already in use')
+        print('use `jackup edit <profile> <name>` to change settings inside this slave')
         return
 
-    record = { 'source': source, 'destination': destination }
-
-    profile_json[name] = record
+    profile_json[name] = { 'source': source, 'destination': destination }
 
     with open(profile_file, 'w') as profile_db:
         json.dump(profile_json, profile_db, indent=4)
@@ -36,7 +34,7 @@ def add(config, profile, name, source, destination, port):
 def edit(config, profile, name, source, destination, port):
     profile_file = _jackup_profile(config, profile)
     if not os.path.isfile(profile_file):
-        printer.warning('this profile does not exist')
+        printer.warning('that profile does not exist')
         return
 
     with open(profile_file, 'r') as profile_db:
@@ -59,29 +57,24 @@ def edit(config, profile, name, source, destination, port):
 
 
 def remove(config, profile, name):
-    pass
-
-def remove2(config, name):
-    """
-    Remove a slave from the repository.
-    """
-    with open(config['file'], 'r') as jackup_db:
-        jackup_json = json.load(jackup_db)
-
-    names = [ slave['name'] for slave in jackup_json['slaves'] ]
-    if (name not in names):
-        print(name + " is not in the repository")
+    profile_file = _jackup_profile(config, profile)
+    if not os.path.isfile(profile_file):
+        printer.warning('that profile does not exist')
         return
 
-    for slave in jackup_json['slaves']:
-        if (slave["name"] == name):
-            jackup_json['slaves'].remove(slave)
-            break
+    with open(profile_file, 'r') as profile_db:
+        profile_json = json.load(profile_db)
 
-    with open(config['file'], 'w') as jackup_db:
-        json.dump(jackup_json, jackup_db, indent=4)
+    if not name in profile_json:
+        printer.warning(profile + ' does not have a slave named ' + name)
+        return
 
-    print("removed slave " + name)
+    profile_json.pop(name)
+
+    with open(profile_file, 'w') as profile_db:
+        json.dump(profile_json, profile_db, indent=4)
+
+    print("removed " + profile + '/' + name)
 
 def list(config, profile):
     if not profile:
