@@ -139,9 +139,6 @@ def list(config, profile):
     tp.print_table(table)
 
 def _rsync(config, slave, src, dest):
-    """
-    Calls rsync to sync the master directory and the slave.
-    """
     rsync_args = ['--exclude=.jackup',
                   '--log-file=' + config['log'],
                   '--partial', '--progress', '--archive',
@@ -152,42 +149,34 @@ def _rsync(config, slave, src, dest):
                   '--checksum',
                   # '--quiet',
                   '--verbose',
-                  # '--dry-run',
+                  '--dry-run',
                   '--delete'
     ]
 
-    if slave['type'] == 'ssh':
-        rsync_args += ['-e', 'ssh -p' + slave['port']]
-        rsync_args += ['--port', slave['port']]
+    #     if slave['type'] == 'ssh':
+    #         rsync_args += ['-e', 'ssh -p' + slave['port']]
+    #         rsync_args += ['--port', slave['port']]
 
     cmd_rsync = subprocess.run(['rsync'] + rsync_args + [src, dest], stderr=subprocess.PIPE)
     rsync_stderr = str(cmd_rsync.stderr, 'utf-8', 'ignore').strip()
     return rsync_stderr
 
-def _sync_slave(config, slave):
-    """
-    Figures out whether to pull or push a slave, and delegates syncing to `rsync`.
-    Returns True if synching succeeded, False otherwise.
-    """
-    src = slave['source']
-    dest = slave['destination']
+def _sync_slave(config, slave, record):
+    src = record['source']
+    dest = record['destination']
 
-    if not src or not dest:
-        printer.warning("unable to locate " + slave['name'] + ", skipping.")
-        return False
+    printer.success("found " + slave + ', syncing...')
 
-    printer.success("found " + slave['name'] + ', syncing...')
-
-    printer.success(slave['name'] + ": " + src + ' -> ' + dest)
+    printer.success(slave + ": " + src + ' -> ' + dest)
 
     rsync_stderr = _rsync(config, slave, src, dest)
 
     if rsync_stderr:
-        printer.error('failed syncing ' + slave['name'])
+        printer.error('failed syncing ' + slave)
         printer.error(rsync_stderr)
         return False
 
-    printer.success('completed syncing ' + slave['name'])
+    printer.success('completed syncing ' + slave)
     return True
 
 def sync(config, profile):
@@ -213,78 +202,24 @@ def sync(config, profile):
 
     sorted_slaves = sorted(profile_json, key=lambda k: profile_json[k]['priority'])
 
+    syncs = 0
+
     for slave in sorted_slaves:
         print('syncing ' + slave)
+        if _sync_slave(config, slave, profile_json[slave]):
+            syncs += 1
 
+    slave_count = str(syncs) + '/' + str(len(sorted_slaves))
+
+    if syncs == 0 and len(sorted_slaves) > 0:
+        slave_count = printer.RED(slave_count)
+    elif syncs < len(sorted_slaves):
+        slave_count = printer.YELLOW(slave_count)
+    else:
+        slave_count = printer.GREEN(slave_count)
+
+    print('synchronized ' + slave_count + " slaves")
     print('completed syncing ' + profile)
 
     # free the lock for the profile
     os.remove(lockfile)
-
-def sync2(config, profile):
-    """
-    Handler for `jackup sync`.
-    Starts syncing the master directory with its slaves.
-    Starts with pulling all available pull-slaves into the master, then pushing the
-    master to all push-slaves.
-    """
-
-
-    # only try syncing if we can lock the repository
-    if not os.path.isfile(config['lock']):
-        # create the lock when we acquire it
-        open(config['lock'], 'w').close()
-    else:
-        printer.error("Jackup sync is already running in this repository.")
-        return
-
-    print("Syncing master: " + config['master'])
-
-    with open(config['file'], 'r') as jackup_db:
-        jackup_json = json.load(jackup_db)
-
-    pulls = 0
-    pushes = 0
-
-    # first we try to pull from all pull-slaves into the master directory
-    to_pull = [ slave for slave in jackup_json['slaves'] if slave['action'] == 'pull' ]
-    for slave in to_pull:
-        print('trying to pull from ' + slave['name'])
-        if _sync_slave(config, slave):
-            pulls += 1
-
-    if any(to_pull) and pulls == 0:
-        printer.error('failed to pull any slaves')
-
-    # then we try to push from the master directory to all push-slaves
-    to_push = [ slave for slave in jackup_json['slaves'] if slave['action'] == 'push' ]
-    for slave in to_push:
-        print('trying to push to ' + slave['name'])
-        if _sync_slave(config, slave):
-            pushes += 1
-
-    if any(to_push) and pushes == 0:
-        printer.error('failed to push any slaves')
-
-    # free the sync lock
-    os.remove(config['lock'])
-
-    # print results
-    pulls_string = str(pulls) + " / " + str(len(to_pull)) + " pulls"
-    pushes_string = str(pushes) + " / " + str(len(to_push)) + " pushes"
-
-    if len(to_pull) > 0 and pulls == 0:
-        pulls_string = printer.RED(pulls_string)
-    elif len(to_pull) > 0 and pulls < len(to_pull):
-        pulls_string = printer.YELLOW(pulls_string)
-    else:
-        pulls_string = printer.GREEN(pulls_string)
-
-    if len(to_push) > 0 and pushes == 0:
-        pushes_string = printer.RED(pushes_string)
-    elif len(to_push) > 0 and pushes < len(to_push):
-        pushes_string = printer.YELLOW(pushes_string)
-    else:
-        pushes_string = printer.GREEN(pushes_string)
-
-    print('syncing complete: ' + pulls_string + ', ' + pushes_string)
