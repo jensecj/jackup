@@ -70,6 +70,9 @@ def list(config, profile):
         return
 
     profile_file = _jackup_profile(config, profile)
+    if not os.path.isfile(profile_file):
+        printer.warning('that profile does not exist')
+        return
 
     with open(profile_file, 'r') as profile_db:
         profile_json = json.load(profile_db)
