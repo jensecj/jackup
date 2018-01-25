@@ -31,10 +31,32 @@ def add(config, profile, name, source, destination, port):
     with open(profile_file, 'w') as profile_db:
         json.dump(profile_json, profile_db, indent=4)
 
-    print("added slave " + name)
+    print("added " + profile + '/' + name)
 
 def edit(config, profile, name, source, destination, port):
-    pass
+    profile_file = _jackup_profile(config, profile)
+    if not os.path.isfile(profile_file):
+        printer.warning('this profile does not exist')
+        return
+
+    with open(profile_file, 'r') as profile_db:
+        profile_json = json.load(profile_db)
+
+    if not name in profile_json:
+        printer.warning(profile + ' does not have a slave named ' + name)
+        return
+
+    if source:
+        profile_json[name]['source'] = source
+
+    if destination:
+        profile_json[name]['destination'] = destination
+
+    with open(profile_file, 'w') as profile_db:
+        json.dump(profile_json, profile_db, indent=4)
+
+    print("edited " + profile + '/' + name)
+
 
 def remove(config, profile, name):
     pass
