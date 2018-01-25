@@ -148,7 +148,7 @@ def _rsync(config, slave, src, dest, excludes=['.jackup']):
                   '--checksum',
                   # '--quiet',
                   '--verbose',
-                  '--dry-run',
+                  # '--dry-run',
                   '--delete'
     ]
 
