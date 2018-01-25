@@ -66,6 +66,16 @@ future, if you want to edit or remove it.
 The paths can either be local to the machine or SSH-paths to directories you
 have access to on remote machines.
 
+Identity, ports, etc. for remote hosts should be handled in `~/.ssh/config`.
+e.g. for my phone, i have:
+```
+Host phone
+    User jens
+    IdentityFile ~/.ssh/termux
+    HostName 192.168.0.4
+    Port 8022
+```
+
 `--priority` takes a number, and indicates in which order the slaves will be
 synched, 0 being the first one.
 
