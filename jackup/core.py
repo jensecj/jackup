@@ -14,19 +14,19 @@ def add(config, profile, name, source, destination, port):
     if not os.path.isfile(profile_file):
         print('profile does not exist, creating')
         with open(profile_file, 'w') as profile_db:
-            json.dump([], profile_db, indent=4)
+            json.dump({}, profile_db, indent=4)
 
     with open(profile_file, 'r') as profile_db:
         profile_json = json.load(profile_db)
 
-    if name in [ n['name'] for n in profile_json if n['name'] == name ]:
+    if 'name' in profile_json:
         printer.warning('This name is already in use.')
         print('use `jackup edit <profile> <name>` to change settings inside this slave.')
         return
 
-    record = { 'name': name, 'source': source, 'destination': destination }
+    record = { 'source': source, 'destination': destination }
 
-    profile_json.append(record)
+    profile_json[name] = record
 
     with open(profile_file, 'w') as profile_db:
         json.dump(profile_json, profile_db, indent=4)
@@ -77,7 +77,7 @@ def list(config, profile):
     table = [['name', 'source', 'destination']]
 
     for slave in profile_json:
-        table.append([slave['name'], slave['source'], slave['destination']])
+        table.append([ slave, profile_json[slave]['source'], profile_json[slave]['destination'] ])
 
     tp.print_table(table)
 
