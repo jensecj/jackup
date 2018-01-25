@@ -27,7 +27,7 @@ def add(config, profile, name, source, destination, port):
     with open(profile_file, 'r') as profile_db:
         profile_json = json.load(profile_db)
 
-    if 'name' in profile_json:
+    if name in profile_json:
         printer.warning('This name is already in use')
         print('use `jackup edit <profile> <name>` to change settings inside this slave')
         return
@@ -173,9 +173,8 @@ def sync(config, profile):
     """
     Synchronizes all slaves in PROFILE.
     """
-    profile_path = os.path.join(config['master'], profile + '.json')
-
-    if not os.path.isfile(profile_path):
+    profile_file = _jackup_profile(config, profile)
+    if not os.path.isfile(profile_file):
         printer.error("That profile does not exist.")
         return
 
