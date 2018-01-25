@@ -12,7 +12,7 @@ def _jackup_profile(config, profile):
     """
     return os.path.join(config['dir'], profile + '.json')
 
-def add(config, profile, name, source, destination, port):
+def add(config, profile, name, source, destination, priority, port):
     """
     Add a new slave with NAME, to PROFILE.
     SOURCE/DESTINATION can be either local files/folders, or remote locations,
@@ -32,7 +32,17 @@ def add(config, profile, name, source, destination, port):
         print('use `jackup edit <profile> <name>` to change settings inside this slave')
         return
 
-    profile_json[name] = { 'source': source, 'destination': destination }
+    # if we add a new slave without a priority, place it last in the queue of
+    # slaves to synchronize by giving it the largest priority
+    if not priority:
+        priorities = [ profile_json[slave]['priority'] for slave in profile_json ]
+
+        if len(priorities) == 0:
+            priority = 0
+        else:
+            priority = max(priorities) + 1
+
+    profile_json[name] = { 'source': source, 'destination': destination, 'priority': priority }
 
     with open(profile_file, 'w') as profile_db:
         json.dump(profile_json, profile_db, indent=4)
@@ -110,10 +120,10 @@ def list(config, profile):
     with open(profile_file, 'r') as profile_db:
         profile_json = json.load(profile_db)
 
-    table = [['name', 'source', 'destination']]
+    table = [ ['name', 'source', 'destination', 'priority'] ]
 
     for slave in profile_json:
-        table.append([ slave, profile_json[slave]['source'], profile_json[slave]['destination'] ])
+        table.append([ slave, profile_json[slave]['source'], profile_json[slave]['destination'], str(profile_json[slave]['priority']) ])
 
     tp.print_table(table)
 
