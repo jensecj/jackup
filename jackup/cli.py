@@ -3,7 +3,7 @@ import sys
 import argparse
 from pathlib import Path
 
-from jackup.core import add, remove, list, sync
+from jackup.core import add, edit, remove, list, sync
 
 def version(config):
     print('Jackup version 0.2 - alpha')
@@ -13,13 +13,21 @@ def main():
     parser = argparse.ArgumentParser(description="Jackup: Simple synchronization.")
     subparsers = parser.add_subparsers()
 
-    add_parser = subparsers.add_parser("add", help="Add a slave to repository")
+    add_parser = subparsers.add_parser("add", help="Add a slave to a profile")
     add_parser.add_argument("profile", help="profile to add slaves to")
-    add_parser.add_argument("name", help="name of the slave to add to the repository")
+    add_parser.add_argument("name", help="name of the slave to add to the profile")
     add_parser.add_argument("source", help="source to sync from, can be a directory of file")
     add_parser.add_argument("destination", help="destination to sync to, can be a directory or file")
     add_parser.add_argument('--ssh', nargs='?', dest="port", type=int, const=22, default=0, help="if the slave in on a remote machine")
     add_parser.set_defaults(func=add)
+
+    edit_parser = subparsers.add_parser("edit", help="Edit a slave in profile")
+    edit_parser.add_argument("profile", help="profile to edit")
+    edit_parser.add_argument("name", help="name of the slave to edit")
+    edit_parser.add_argument("--source", help="source to sync from, can be a directory of file")
+    edit_parser.add_argument("--destination", help="destination to sync to, can be a directory or file")
+    edit_parser.add_argument('--ssh', dest="port", type=int, help="if the slave in on a remote machine")
+    edit_parser.set_defaults(func=edit)
 
     remove_parser = subparsers.add_parser("remove", aliases=['rm'], help="Remove a slave from repository")
     remove_parser.add_argument("name", help="name of the slave to remove")

@@ -33,6 +33,9 @@ def add(config, profile, name, source, destination, port):
 
     print("added slave " + name)
 
+def edit(config, profile, name, source, destination, port):
+    pass
+
 def remove(config, profile, name):
     pass
 
