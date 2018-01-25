@@ -159,7 +159,7 @@ def _rsync(config, slave, src, dest, excludes=['.jackup']):
     rsync_stderr = str(cmd_rsync.stderr, 'utf-8', 'ignore').strip()
     return rsync_stderr
 
-def _sync_slave(config, slave, record):
+def _sync_slave(config, profile, slave, record):
     logging.success(slave + ": " + record['source'] + ' -> ' + record['destination'])
 
     excludes = []
@@ -172,11 +172,11 @@ def _sync_slave(config, slave, record):
     rsync_stderr = _rsync(config, slave, record['source'], record['destination'], excludes)
 
     if rsync_stderr:
-        logging.error('failed syncing ' + slave)
+        logging.error('failed syncing ' + profile + '/' + slave)
         logging.error(rsync_stderr)
         return False
 
-    logging.success('completed syncing ' + slave)
+    logging.success('completed syncing ' + profile + '/' + slave)
     return True
 
 def sync(config, profile):
@@ -206,7 +206,7 @@ def sync(config, profile):
 
     for slave in sorted_slaves:
         print('syncing ' + slave)
-        if _sync_slave(config, slave, profile_json[slave]):
+        if _sync_slave(config, profile, slave, profile_json[slave]):
             syncs += 1
 
     slave_count = str(syncs) + '/' + str(len(sorted_slaves))
