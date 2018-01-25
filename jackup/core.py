@@ -162,7 +162,12 @@ def _rsync(config, slave, src, dest, excludes=['.jackup']):
 def _sync_slave(config, slave, record):
     printer.success(slave + ": " + record['source'] + ' -> ' + record['destination'])
 
-    excludes = ['.jackup', '.git', 'env', '__pycache__', '.eggs', '.direnv']
+    excludes = []
+    ignore_file = os.path.join(record['source'], '.jackupignore')
+    if os.path.isfile(ignore_file):
+        with open(ignore_file, 'r') as ignore_db:
+            for line in ignore_db:
+                excludes.append(line.strip())
 
     rsync_stderr = _rsync(config, slave, record['source'], record['destination'], excludes)
 
