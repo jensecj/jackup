@@ -27,6 +27,7 @@ def main():
     edit_parser.add_argument("name", help="name of the slave to edit")
     edit_parser.add_argument("--source", help="source to sync from, can be a directory of file")
     edit_parser.add_argument("--destination", help="destination to sync to, can be a directory or file")
+    edit_parser.add_argument('--priority', type=int, help="The priority of the slave, used to determine the synchronization order")
     edit_parser.add_argument('--ssh', dest="port", type=int, help="if the slave in on a remote machine")
     edit_parser.set_defaults(func=edit)
 

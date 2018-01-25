@@ -49,7 +49,7 @@ def add(config, profile, name, source, destination, priority, port):
 
     print("added " + profile + '/' + name)
 
-def edit(config, profile, name, source, destination, port):
+def edit(config, profile, name, source, destination, priority, port):
     """
     Edit a slave with NAME, in PROFILE.
     Allows changing values of a slave after creation.
@@ -71,6 +71,9 @@ def edit(config, profile, name, source, destination, port):
 
     if destination:
         profile_json[name]['destination'] = destination
+
+    if priority:
+        profile_json[name]['priority'] = priority
 
     with open(profile_file, 'w') as profile_db:
         json.dump(profile_json, profile_db, indent=4)
@@ -122,7 +125,9 @@ def list(config, profile):
 
     table = [ ['name', 'source', 'destination', 'priority'] ]
 
-    for slave in profile_json:
+    sorted_slaves = sorted(profile_json, key=lambda k: profile_json[k]['priority'])
+
+    for slave in sorted_slaves:
         table.append([ slave, profile_json[slave]['source'], profile_json[slave]['destination'], str(profile_json[slave]['priority']) ])
 
     tp.print_table(table)
@@ -188,7 +193,15 @@ def sync(config, profile):
         printer.error("That profile does not exist.")
         return
 
-    print('syncing ' + profile)
+    with open(profile_file, 'r') as profile_db:
+        profile_json = json.load(profile_db)
+
+    sorted_slaves = sorted(profile_json, key=lambda k: profile_json[k]['priority'])
+
+    for slave in sorted_slaves:
+        print('syncing ' + slave)
+
+    print('completed syncing ' + profile)
 
 def sync2(config, profile):
     """
