@@ -13,8 +13,8 @@ class TC:
 class VERBOSITY:
     ERROR = 0
     QUIET = 1
-    WARNIING = 2
-    DEFAULT = 3
+    WARNING = 2
+    INFO = 3
     VERBOSE = 4
     DEBUG = 5
 
@@ -26,14 +26,17 @@ def log(string, verbosity):
 
     print(string, file=sys.stdout)
 
-def success(string):
-    log(GREEN(string), VERBOSITY.DEFAULT)
+def info(string):
+    log(string, VERBOSITY.INFO)
 
-def error(string):
-    log(RED(string), VERBOSITY.ERROR)
+def success(string):
+    log(GREEN(string), VERBOSITY.INFO)
 
 def warning(string):
     log(YELLOW(string), VERBOSITY.WARNING)
+
+def error(string):
+    log(RED(string), VERBOSITY.ERROR)
 
 def debug(string):
     log(BLUE(string), VERBOSITY.DEBUG)

@@ -4,7 +4,7 @@ import subprocess
 
 import jackup.tableprinter as tp
 import jackup.sysutils as su
-import jackup.logging as logging
+import jackup.logging as log
 
 def _jackup_profile(config, profile):
     """
@@ -34,7 +34,7 @@ def add(config, profile, name, source, destination, priority):
         profile_json = json.load(profile_db)
 
     if name in profile_json:
-        logging.warning('This name is already in use')
+        log.warning('This name is already in use')
         print('use `jackup edit <profile> <name>` to change settings inside this slave')
         return
 
@@ -63,14 +63,14 @@ def edit(config, profile, name, source, destination, priority):
     """
     profile_file = _jackup_profile(config, profile)
     if not os.path.isfile(profile_file):
-        logging.warning('that profile does not exist')
+        log.warning('that profile does not exist')
         return
 
     with open(profile_file, 'r') as profile_db:
         profile_json = json.load(profile_db)
 
     if not name in profile_json:
-        logging.warning(profile + ' does not have a slave named ' + name)
+        log.warning(profile + ' does not have a slave named ' + name)
         return
 
     if source:
@@ -93,14 +93,14 @@ def remove(config, profile, name):
     """
     profile_file = _jackup_profile(config, profile)
     if not os.path.isfile(profile_file):
-        logging.warning('that profile does not exist')
+        log.warning('that profile does not exist')
         return
 
     with open(profile_file, 'r') as profile_db:
         profile_json = json.load(profile_db)
 
     if not name in profile_json:
-        logging.warning(profile + ' does not have a slave named ' + name)
+        log.warning(profile + ' does not have a slave named ' + name)
         return
 
     profile_json.pop(name)
@@ -139,7 +139,7 @@ def list(config, profile):
 
     profile_file = _jackup_profile(config, profile)
     if not os.path.isfile(profile_file):
-        logging.warning('that profile does not exist')
+        log.warning('that profile does not exist')
         return
 
     with open(profile_file, 'r') as profile_db:
@@ -167,7 +167,7 @@ def _rsync(config, slave, src, dest, excludes=[]):
                   #'--timeout=30',
                   '--copy-links',
                   '--new-compress',
-                  '--checksum',
+                  # '--checksum',
                   # '--quiet',
                   '--verbose',
                   # '--dry-run',
@@ -189,7 +189,7 @@ def _sync_slave(config, profile, slave, record):
     Tries to parse the .jackupignore file if any, and then delegates syncing to
     `_rsync`.
     """
-    logging.success(slave + ": " + record['source'] + ' -> ' + record['destination'])
+    log.success(slave + ": " + record['source'] + ' -> ' + record['destination'])
 
     # if a .jackupignore file exists, parse it
     excludes = []
@@ -204,11 +204,11 @@ def _sync_slave(config, profile, slave, record):
 
     # if any errors were found, log them and exit
     if rsync_stderr:
-        logging.error('failed syncing ' + profile + '/' + slave)
-        logging.error(rsync_stderr)
+        log.error('failed syncing ' + profile + '/' + slave)
+        log.error(rsync_stderr)
         return False
 
-    logging.success('completed syncing ' + profile + '/' + slave)
+    log.success('completed syncing ' + profile + '/' + slave)
     return True
 
 def sync(config, profile):
@@ -217,44 +217,46 @@ def sync(config, profile):
     """
     profile_file = _jackup_profile(config, profile)
     if not os.path.isfile(profile_file):
-        logging.error("That profile does not exist.")
+        log.error("That profile does not exist.")
         return
+
+    lockfile = _jackup_profile_lock(config, profile)
 
     # only try syncing if we can lock the repository
-    lockfile = _jackup_profile_lock(config, profile)
-    if not os.path.isfile(lockfile):
-        # create the lock when we acquire it
-        open(lockfile, 'w').close()
-    else:
-        logging.error("`jackup sync` is already running for this profile")
+    if os.path.isfile(lockfile):
+        log.error("`jackup sync` is already running for this " + profile)
         return
 
-    with open(profile_file, 'r') as profile_db:
-        profile_json = json.load(profile_db)
+    try:
+        # create the lock when we acquire it
+        open(lockfile, 'w').close()
 
-    sorted_slaves = sorted(profile_json, key = lambda k: profile_json[k]['priority'])
+        with open(profile_file, 'r') as profile_db:
+            profile_json = json.load(profile_db)
 
-    # keep count of how many slaves succeeded synchronizing
-    syncs = 0
+        sorted_slaves = sorted(profile_json, key = lambda k: profile_json[k]['priority'])
 
-    # try syncing the slaves in order
-    for slave in sorted_slaves:
-        print('syncing ' + slave)
-        if _sync_slave(config, profile, slave, profile_json[slave]):
-            syncs += 1
+        # keep count of how many slaves succeeded synchronizing
+        syncs = 0
 
-    # done syncing, report statistics
-    slave_count = str(syncs) + '/' + str(len(sorted_slaves))
+        # try syncing the slaves in order
+        for slave in sorted_slaves:
+            print('syncing ' + slave)
+            if _sync_slave(config, profile, slave, profile_json[slave]):
+                syncs += 1
 
-    if syncs == 0 and len(sorted_slaves) > 0:
-        slave_count = logging.RED(slave_count)
-    elif syncs < len(sorted_slaves):
-        slave_count = logging.YELLOW(slave_count)
-    else:
-        slave_count = logging.GREEN(slave_count)
+        # done syncing, report statistics
+        slave_count = str(syncs) + '/' + str(len(sorted_slaves))
 
-    print('synchronized ' + slave_count + " slaves")
-    print('completed syncing ' + profile)
+        if syncs == 0 and len(sorted_slaves) > 0:
+            slave_count = log.RED(slave_count)
+        elif syncs < len(sorted_slaves):
+            slave_count = log.YELLOW(slave_count)
+        else:
+            slave_count = log.GREEN(slave_count)
 
-    # free the lock for the profile
-    os.remove(lockfile)
+            print('synchronized ' + slave_count + " slaves")
+            print('completed syncing ' + profile)
+    finally:
+        # free the lock for the profile
+        os.remove(lockfile)
