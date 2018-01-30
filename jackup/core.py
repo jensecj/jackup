@@ -261,4 +261,5 @@ def sync(config, profile):
         log.warning("syncing interrupted by user.")
     finally:
         # free the lock for the profile
-        os.remove(lockfile)
+        if os.path.isfile(lockfile):
+            os.remove(lockfile)
