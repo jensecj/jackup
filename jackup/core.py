@@ -257,6 +257,8 @@ def sync(config, profile):
 
             print('synchronized ' + slave_count + " slaves")
             print('completed syncing ' + profile)
+    except KeyboardInterrupt:
+        log.warning("syncing interrupted by user.")
     finally:
         # free the lock for the profile
         os.remove(lockfile)
