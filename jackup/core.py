@@ -224,7 +224,7 @@ def sync(config, profile):
 
     # only try syncing if we can lock the repository
     if os.path.isfile(lockfile):
-        log.error("`jackup sync` is already running for this " + profile)
+        log.error("`jackup sync` is already running for " + profile)
         return
 
     try:
@@ -258,7 +258,7 @@ def sync(config, profile):
             print('synchronized ' + slave_count + " slaves")
             print('completed syncing ' + profile)
     except KeyboardInterrupt:
-        log.warning("syncing interrupted by user.")
+        log.warning("\nsyncing interrupted by user.")
     finally:
         # free the lock for the profile
         if os.path.isfile(lockfile):
