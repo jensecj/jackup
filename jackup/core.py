@@ -161,23 +161,25 @@ def remove(config, profile, name):
 
     log.info("removed " + profile + '/' + name)
 
+def _get_available_profiles(config):
+    """
+    Get the names of all available profiles on the system.
+    This is done by finding all profile-files (files ending in .json) in the
+    jackup directory.
+    """
+    profiles = [ profile[:-5] # dont include the last 5 charaters of the filename ('.json')
+                 for profile
+                 in os.listdir(config['dir']) # list all files in the jackup directory
+                 if profile.endswith('.json') ] # that end with '.json', these are the profiles
+    return profiles
+
 def _list_available_profiles(config):
     """
     List all available profiles on the system.
     """
-    profiles = []
-    for file in os.listdir(config['dir']):
-        # all files in the jackup-directory ending with .json are profile-files
-        if file.endswith('.json'):
-            # when extracting the profiles name from the filename, do not
-            # include the last 5 characters of the filename ('.json').
-            profiles.append(file[:-5])
-
     log.info('Profiles:')
     # count the number of slaves in each profile, and print.
-    for profile in profiles:
-        profile_file = os.path.join(config['dir'], profile + '.json')
-
+    for profile in _get_available_profiles(config):
         slaves = _read_profile(config, profile)
 
         number_of_slaves = len(slaves)
