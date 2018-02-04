@@ -82,14 +82,14 @@ def add(config, profile, name, source, destination, priority):
     get synchronized first.
     """
     if not _profile_exists(config, profile):
-        print('profile does not exist, creating')
+        log.info('profile does not exist, creating')
         _create_profile(config, profile)
 
     profile_json = _read_profile(config, profile)
 
     if name in profile_json:
         log.warning('This name is already in use')
-        print('use `jackup edit <profile> <name>` to change settings inside this slave')
+        log.info('use `jackup edit <profile> <name>` to change settings inside this slave')
         return
 
     priorities = [ profile_json[slave]['priority'] for slave in profile_json ]
@@ -111,7 +111,7 @@ def add(config, profile, name, source, destination, priority):
 
     _write_profile(config, profile, profile_json)
 
-    print("added " + profile + '/' + name)
+    log.info("added " + profile + '/' + name)
 
 def edit(config, profile, name, source, destination, priority):
     """
@@ -139,7 +139,7 @@ def edit(config, profile, name, source, destination, priority):
 
     _write_profile(config, profile, profile_json)
 
-    print("edited " + profile + '/' + name)
+    log.info("edited " + profile + '/' + name)
 
 def remove(config, profile, name):
     """
@@ -159,7 +159,7 @@ def remove(config, profile, name):
 
     _write_profile(config, profile, profile_json)
 
-    print("removed " + profile + '/' + name)
+    log.info("removed " + profile + '/' + name)
 
 def _list_available_profiles(config):
     """
@@ -173,7 +173,7 @@ def _list_available_profiles(config):
             # include the last 5 characters of the filename ('.json').
             profiles.append(file[:-5])
 
-    print('Profiles:')
+    log.info('Profiles:')
     # count the number of slaves in each profile, and print.
     for profile in profiles:
         profile_file = os.path.join(config['dir'], profile + '.json')
@@ -187,7 +187,7 @@ def _list_available_profiles(config):
         if number_of_slaves > 1:
             slave_string += 's'
 
-        print('* ' + profile + ' (' + str(number_of_slaves) + ' ' + slave_string + ')')
+        log.info('* ' + profile + ' (' + str(number_of_slaves) + ' ' + slave_string + ')')
 
 def _list_profile(config, profile):
     """
@@ -284,7 +284,6 @@ def sync(config, profile):
         log.error("That profile does not exist.")
         return
 
-    # create the lock when we acquire it
     if not _lock_profile(config, profile):
         log.error("`jackup sync` is already running for " + profile)
         return
@@ -299,7 +298,7 @@ def sync(config, profile):
 
         # try syncing the slaves in order
         for slave in sorted_slaves:
-            print('syncing ' + slave)
+            log.info('syncing ' + slave)
             if _sync_slave(config, profile, slave, profile_json[slave]):
                 syncs += 1
 
@@ -313,8 +312,8 @@ def sync(config, profile):
         else:
             slave_count = log.GREEN(slave_count)
 
-            print('synchronized ' + slave_count + " slaves")
-            print('completed syncing ' + profile)
+            log.info('synchronized ' + slave_count + " slaves")
+            log.info('completed syncing ' + profile)
     except KeyboardInterrupt:
         log.warning("\nsyncing interrupted by user.")
     finally:
