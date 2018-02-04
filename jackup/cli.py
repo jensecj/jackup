@@ -6,40 +6,40 @@ from pathlib import Path
 from jackup.core import add, edit, remove, list, sync
 
 def version(config):
-    print('Jackup version 0.2 - alpha')
+    print('Jackup version 0.3')
 
 def main():
     # setup the parser for commandline usage
     parser = argparse.ArgumentParser(description="Jackup: Simple synchronization.")
     subparsers = parser.add_subparsers()
 
-    add_parser = subparsers.add_parser("add", help="Add a slave to a profile")
-    add_parser.add_argument("profile", help="profile to add slaves to")
-    add_parser.add_argument("name", help="name of the slave to add to the profile")
-    add_parser.add_argument("source", help="source to sync from, can be a directory of file")
+    add_parser = subparsers.add_parser("add", help="Add a task to a profile")
+    add_parser.add_argument("profile", help="profile to add tasks to")
+    add_parser.add_argument("name", help="name of the task to add to the profile")
+    add_parser.add_argument("source", help="source to sync from, can be a directory or file")
     add_parser.add_argument("destination", help="destination to sync to, can be a directory or file")
-    add_parser.add_argument('--priority', nargs='?', type=int, default=0, help="priority used to pick the order slaves are synchronized")
+    add_parser.add_argument('--priority', nargs='?', type=int, default=0, help="priority used to pick the order tasks are synchronized")
     add_parser.set_defaults(func=add)
 
-    edit_parser = subparsers.add_parser("edit", help="Edit a slave in profile")
-    edit_parser.add_argument("profile", help="profile to edit")
-    edit_parser.add_argument("name", help="name of the slave to edit")
-    edit_parser.add_argument("--source", help="source to sync from, can be a directory of file")
+    edit_parser = subparsers.add_parser("edit", help="Edit a task in profile")
+    edit_parser.add_argument("profile", help="profile containing the task to edit")
+    edit_parser.add_argument("name", help="name of the task to edit")
+    edit_parser.add_argument("--source", help="source to sync from, can be a directory or file")
     edit_parser.add_argument("--destination", help="destination to sync to, can be a directory or file")
-    edit_parser.add_argument('--priority', type=int, help="The priority of the slave, used to determine the synchronization order")
+    edit_parser.add_argument('--priority', type=int, help="The priority of the task, used to determine the synchronization order")
     edit_parser.set_defaults(func=edit)
 
-    remove_parser = subparsers.add_parser("remove", aliases=['rm'], help="Remove a slave from repository")
-    remove_parser.add_argument("profile", help="profile to remove slave from")
-    remove_parser.add_argument("name", help="name of the slave to remove")
+    remove_parser = subparsers.add_parser("remove", aliases=['rm'], help="Remove a task from profile")
+    remove_parser.add_argument("profile", help="profile to remove task from")
+    remove_parser.add_argument("name", help="name of the task to remove")
     remove_parser.set_defaults(func=remove)
 
-    list_parser = subparsers.add_parser("list", aliases=['ls'], help="List all slaves in repository")
-    list_parser.add_argument("profile", nargs='?', help="List all slaves of PROFILE")
+    list_parser = subparsers.add_parser("list", aliases=['ls'], help="List all tasks in profile")
+    list_parser.add_argument("profile", nargs='?', help="Profile to list tasks of")
     list_parser.set_defaults(func=list)
 
-    sync_parser = subparsers.add_parser("sync", help="Synchronizes master and slaves")
-    sync_parser.add_argument("profile", help="Synchronize all slaves of PROFILE")
+    sync_parser = subparsers.add_parser("sync", help="Synchronizes a profile")
+    sync_parser.add_argument("profile", help="Profile with tasks to synchronize")
     sync_parser.set_defaults(func=sync)
 
     version_parser = subparsers.add_parser("--version", aliases=['-v'], help="Prints Jackups version")
@@ -54,7 +54,6 @@ def main():
 
     jackup_dir = os.path.join(Path.home(), '.jackup')
     jackup_log = os.path.join(jackup_dir, "log")
-    jackup_lock = os.path.join(jackup_dir, "lock")
 
     # create jackup directory if it does not exist
     if not os.path.isdir(jackup_dir):

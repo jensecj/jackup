@@ -13,13 +13,13 @@ jackup add backup_vault exhdd /home/jens/vault /mnt/extern/backups/
 
 # now i unplug my external harddrive from my laptop, and connect it to the server in my living room
 
-# add the same folder as a slave, this time while it is connected to the server
+# add the same folder as a task, this time while it is connected to the server
 # this also works for machines that are more than 20ft away
 jackup add backup_vault server /home/jens/vault stuetop@192.168.0.40:/media/extern/backups/
 ```
 
-Now, whenever I run `jackup sync backup_vault`, Jackup will try to push
-changes to the slaves, and it will work if my external harddrive is connected to
+Now, whenever I run `jackup sync backup_vault`, Jackup will try to perform
+all the tasks, and it will work if my external harddrive is connected to
 either my laptop or my server. I usually have it running as a cronjob.
 
 My server also has a couple of disks, they're different kinds, sizes, etc. so
@@ -53,64 +53,61 @@ pre-alpha software, use with causion, it may spirit-away your files.
 # Usage
 For help see `jackup --help`, or command specific help with `jackup <command> --help`.
 
-To start off with you need to create a profile, and add some actions to it.
+To start off with you need to create a profile, and add some tasks to it.
 A new profile is automatically created as you start adding:
 ```bash
-$ jackup add <profile> <name> <source> <destination> [--priority N]
+$ jackup add <profile name> <task name> <source> <destination> [--priority N]
 ```
 The profile name is what you refer to when you want to sync.
 
-the name is the qualifier you're going to use to refer to the slave in the
+the name is the qualifier you're going to use to refer to the task in the
 future, if you want to edit or remove it.
 
-The paths can either be local to the machine or SSH-paths to directories you
-have access to on remote machines.
+The paths can either be local to the machine or remote paths to directories you
+have access to on other devices.
 
 Identity, ports, etc. for remote hosts should be handled in `~/.ssh/config`.
 e.g. for my phone, i have:
 ```
 Host phone
-    User jens
-    IdentityFile ~/.ssh/termux
-    HostName 192.168.0.4
-    Port 8022
+User jens
+IdentityFile ~/.ssh/termux
+HostName 192.168.0.4
+Port 8022
 ```
 
-`--priority` takes a number, and indicates in which order the slaves will be
+`--priority` takes a number, and indicates in which order the tasks will be
 synched, 0 being the first one.
 
-Removing a slave from the profile is done by name:
+Removing a task from the profile is done by name:
 ```bash
-$ jackup remove <profile> <name>
+$ jackup remove <profile name> <task name>
 ```
 
-If you want to change something in a slave you have already added to a profile,
+If you want to change something in a task you have already added to a profile,
 you can use `edit`:
 ```bash
-$ jackup edit <profile> <name> [--source <path>] [--destination <path>] [--priority <number>]
+$ jackup edit <profile name> <task name> [--source <path>] [--destination <path>] [--priority <number>]
 ```
-Where each flag changes the related property of the slave. Multiple flags can be
-used at the same time.
+Where each flag changes the related property of the task. Multiple flags can be
+changed at the same time.
 
 Once you're ready to sync, run:
 ```bash
-$ jackup sync <profile>
+$ jackup sync <profile name>
 ```
-Jackup will then try to sync to all available slaves, it will perform
-synchronization in the order determined by each slaves priority, from smallest
+Jackup will then try to sync to all available tasks, it will perform
+synchronization in the order determined by each tasks priority, from smallest
 to largest (smallest will be synchronized first).
-If a slave is unavailable (no SSH-connection, unmounted, etc.) Jackup will tell
-you.
+If either the source or destination of a task is unavailable
+(no SSH-connection, unmounted, etc.) Jackup will tell you.
 
-You can also list all slaves in the profile:
+You can also list all profiles on the system / all tasks in a profile.
 ```bash
-$ jackup list [<profile>]
+$ jackup list [<profile name>]
 ```
 
-If run without a profile, it will list all available profiles on the system,
-otherwise it lists all slaves in the profile given.
-
-which gives you a list like this:
+Listing all tasks in a profile gives you a list like this:
 ```
 name             | source                               | destination                          | priority
 -----------------+--------------------------------------+--------------------------------------+---------

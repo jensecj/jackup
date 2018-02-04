@@ -23,7 +23,7 @@ def _profile_exists(config, profile):
 
 def _create_profile(config, profile):
     """
-    Creates a new empty jackup profile.
+    Creates a new empty jackup profile, with the given name.
     """
     path = _path_to_profile(config, profile)
     with open(path, 'w') as profile_db:
@@ -31,21 +31,21 @@ def _create_profile(config, profile):
 
 def _read_profile(config, profile):
     """
-    Reads the content of the profile-file from dist, and returns it.
+    Reads the content of the profile-file from disk, and returns it.
     """
     profile_file = _path_to_profile(config, profile)
     with open(profile_file, 'r') as profile_db:
-        slaves = json.load(profile_db)
+        tasks = json.load(profile_db)
 
-    return slaves
+    return tasks
 
-def _write_profile(config, profile, profile_json):
+def _write_profile(config, profile, content):
     """
     Writes new content to the profile-file on disk.
     """
     profile_file = _path_to_profile(config, profile)
     with open(profile_file, 'w') as profile_db:
-        json.dump(profile_json, profile_db, indent=4)
+        json.dump(content, profile_db, indent=4)
 
 def _path_to_profile_lock(config, profile):
     """
@@ -56,8 +56,8 @@ def _path_to_profile_lock(config, profile):
 def _lock_profile(config, profile):
     """
     Locks the specified PROFILE, so it can no longer be synchronized.
-    Returns True if profile was locked successfully, returns False if the
-    profile is already locked.
+    Returns True if profile was locked successfully,
+    returns False if the profile was already locked.
     """
     lockfile = _path_to_profile_lock(config, profile)
 
@@ -77,7 +77,7 @@ def _unlock_profile(config, profile):
 
 def add(config, profile, name, source, destination, priority):
     """
-    Add a new slave with NAME, to PROFILE.
+    Add a new task with NAME, to PROFILE.
     SOURCE/DESTINATION can be either local files/folders, or remote locations,
     accessible through ssh.
     PRIORITY is used to determine the order of synchronization, lower values
@@ -91,24 +91,24 @@ def add(config, profile, name, source, destination, priority):
 
     if name in profile_json:
         log.warning('This name is already in use')
-        log.info('use `jackup edit <profile> <name>` to change settings inside this slave')
+        log.info('use `jackup edit <profile> <name>` to change settings for this task')
         return
 
-    priorities = [ profile_json[slave]['priority'] for slave in profile_json ]
+    priorities = [ profile_json[task]['priority'] for task in profile_json ]
     if len(priorities) == 0:
         priorities += [0]
 
-    # if we add a new slave without a priority, place it last in the queue of
-    # slaves to synchronize by giving it the largest priority
+    # if we add a new task without a priority, place it last in the queue of
+    # tasks to synchronize by giving it the largest priority
     if not priority:
         priority = max(priorities) + 1
 
-    # dont allow any slaves to have the same priorities
+    # dont allow any tasks to have the same priorities
     if priority in priorities:
         log.warning("This priority is already used")
         return
 
-    # the record kept for each slave in the profile
+    # the record kept for each task in the profile
     profile_json[name] = { 'source': source, 'destination': destination, 'priority': priority }
 
     _write_profile(config, profile, profile_json)
@@ -117,8 +117,8 @@ def add(config, profile, name, source, destination, priority):
 
 def edit(config, profile, name, source, destination, priority):
     """
-    Edit a slave with NAME, in PROFILE.
-    Allows changing values of a slave after creation.
+    Edit a task with NAME, in PROFILE.
+    Allows changing values of a task after creation.
     """
     if not _profile_exists(config, profile):
         log.warning('that profile does not exist')
@@ -127,7 +127,7 @@ def edit(config, profile, name, source, destination, priority):
     profile_json = _read_profile(config, profile)
 
     if not name in profile_json:
-        log.warning(profile + ' does not have a slave named ' + name)
+        log.warning(profile + ' does not have a task named ' + name)
         return
 
     if source:
@@ -145,7 +145,7 @@ def edit(config, profile, name, source, destination, priority):
 
 def remove(config, profile, name):
     """
-    Remove an existing slave with NAME, from PROFILE.
+    Remove an existing task with NAME, from PROFILE.
     """
     if not _profile_exists(config, profile):
         log.warning('that profile does not exist')
@@ -154,7 +154,7 @@ def remove(config, profile, name):
     profile_json = _read_profile(config, profile)
 
     if not name in profile_json:
-        log.warning(profile + ' does not have a slave named ' + name)
+        log.warning(profile + ' does not have a task named ' + name)
         return
 
     profile_json.pop(name)
@@ -180,22 +180,22 @@ def _list_available_profiles(config):
     List all available profiles on the system.
     """
     log.info('Profiles:')
-    # count the number of slaves in each profile, and print.
+    # count the number of tasks in each profile, and print.
     for profile in _get_available_profiles(config):
-        slaves = _read_profile(config, profile)
+        tasks = _read_profile(config, profile)
 
-        number_of_slaves = len(slaves)
+        number_of_tasks = len(tasks)
 
-        # add plural `s` if the profile has more than one slave
-        slave_string = 'slave'
-        if number_of_slaves > 1:
-            slave_string += 's'
+        # add plural `s` if the profile has more than one task
+        task_string = 'task'
+        if number_of_tasks > 1:
+            task_string += 's'
 
-        log.info('* ' + profile + ' (' + str(number_of_slaves) + ' ' + slave_string + ')')
+        log.info('* ' + profile + ' (' + str(number_of_tasks) + ' ' + task_string + ')')
 
 def _list_profile(config, profile):
     """
-    List all slaves in a profile, their source, destination, and priority.
+    List all tasks in a profile, their source, destination, and priority.
     The listing is sorted by order.
     """
     if not _profile_exists(config, profile):
@@ -206,20 +206,20 @@ def _list_profile(config, profile):
 
     table = [ ['name', 'source', 'destination', 'priority'] ]
 
-    # sort the slaves by priority, from smallest to largest
-    sorted_slaves = sorted(profile_json, key = lambda k: profile_json[k]['priority'])
+    # sort the tasks by priority, from smallest to largest
+    sorted_tasks = sorted(profile_json, key = lambda k: profile_json[k]['priority'])
 
-    for slave in sorted_slaves:
-        table.append([ slave,
-                       profile_json[slave]['source'],
-                       profile_json[slave]['destination'],
-                       str(profile_json[slave]['priority']) ])
+    for task in sorted_tasks:
+        table.append([ task,
+                       profile_json[task]['source'],
+                       profile_json[task]['destination'],
+                       str(profile_json[task]['priority']) ])
 
     tp.print_table(table)
 
 def list(config, profile):
     """
-    If given a PROFILE, list all slaves in that profile, otherwise list all
+    If given a PROFILE, list all tasks in that profile, otherwise list all
     available profiles on the system.
     """
     if profile:
@@ -227,7 +227,7 @@ def list(config, profile):
     else:
         _list_available_profiles(config)
 
-def _rsync(config, slave, src, dest, excludes=[]):
+def _rsync(config, task, src, dest, excludes=[]):
     """
     Wrapper for =rsync=, handles syncing SOURCE to DESTINATION.
     """
@@ -253,13 +253,13 @@ def _rsync(config, slave, src, dest, excludes=[]):
     rsync_stderr = str(cmd_rsync.stderr, 'utf-8', 'ignore').strip()
     return rsync_stderr
 
-def _sync_slave(config, profile, slave, record):
+def _sync_task(config, profile, task, record):
     """
-    Handles syncing a slaves SOURCE to its DESTINATION.
+    Handles syncing a tasks SOURCE to its DESTINATION.
     Tries to parse the .jackupignore file if any, and then delegates syncing to
     `_rsync`.
     """
-    log.success(slave + ": " + record['source'] + ' -> ' + record['destination'])
+    log.success(task + ": " + record['source'] + ' -> ' + record['destination'])
 
     # if a .jackupignore file exists, parse it
     excludes = []
@@ -269,21 +269,21 @@ def _sync_slave(config, profile, slave, record):
             for line in ignore_db:
                 excludes.append(line.strip())
 
-    # try syncing the slave
-    rsync_stderr = _rsync(config, slave, record['source'], record['destination'], excludes)
+    # try syncing the task
+    rsync_stderr = _rsync(config, task, record['source'], record['destination'], excludes)
 
     # if any errors were found, log them and exit
     if rsync_stderr:
-        log.error('failed syncing ' + profile + '/' + slave)
+        log.error('failed syncing ' + profile + '/' + task)
         log.error(rsync_stderr)
         return False
 
-    log.success('completed syncing ' + profile + '/' + slave)
+    log.success('completed syncing ' + profile + '/' + task)
     return True
 
 def sync(config, profile):
     """
-    Synchronizes all slaves in PROFILE.
+    Synchronizes all tasks in PROFILE.
     """
     if not _profile_exists(config, profile):
         log.error("That profile does not exist.")
@@ -296,28 +296,28 @@ def sync(config, profile):
     try:
         profile_json = _read_profile(config, profile)
 
-        sorted_slaves = sorted(profile_json, key = lambda k: profile_json[k]['priority'])
+        sorted_tasks = sorted(profile_json, key = lambda k: profile_json[k]['priority'])
 
-        # keep count of how many slaves succeeded synchronizing
+        # keep count of how many tasks succeeded synchronizing
         syncs = 0
 
-        # try syncing the slaves in order
-        for slave in sorted_slaves:
-            log.info('syncing ' + slave)
-            if _sync_slave(config, profile, slave, profile_json[slave]):
+        # try syncing the tasks in order
+        for task in sorted_tasks:
+            log.info('syncing ' + task)
+            if _sync_task(config, profile, task, profile_json[task]):
                 syncs += 1
 
         # done syncing, report statistics
-        slave_count = str(syncs) + '/' + str(len(sorted_slaves))
+        task_count = str(syncs) + '/' + str(len(sorted_tasks))
 
-        if syncs == 0 and len(sorted_slaves) > 0:
-            slave_count = log.RED(slave_count)
-        elif syncs < len(sorted_slaves):
-            slave_count = log.YELLOW(slave_count)
+        if syncs == 0 and len(sorted_tasks) > 0:
+            task_count = log.RED(task_count)
+        elif syncs < len(sorted_tasks):
+            task_count = log.YELLOW(task_count)
         else:
-            slave_count = log.GREEN(slave_count)
+            task_count = log.GREEN(task_count)
 
-            log.info('synchronized ' + slave_count + " slaves")
+            log.info('synchronized ' + task_count + " tasks")
             log.info('completed syncing ' + profile)
     except KeyboardInterrupt:
         log.warning("\nsyncing interrupted by user.")
