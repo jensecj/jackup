@@ -55,6 +55,24 @@ def _create_profile(config, profile):
     with open(path, 'w') as profile_db:
         json.dump({}, profile_db, indent=4)
 
+def _read_profile(config, profile):
+    """
+    Reads the content of the profile-file from dist, and returns it.
+    """
+    profile_file = _path_to_profile(config, profile)
+    with open(profile_file, 'r') as profile_db:
+        slaves = json.load(profile_db)
+
+    return slaves
+
+def _write_profile(config, profile, profile_json):
+    """
+    Writes new content to the profile-file on disk.
+    """
+    profile_file = _path_to_profile(config, profile)
+    with open(profile_file, 'w') as profile_db:
+        json.dump(profile_json, profile_db, indent=4)
+
 def add(config, profile, name, source, destination, priority):
     """
     Add a new slave with NAME, to PROFILE.
@@ -67,9 +85,7 @@ def add(config, profile, name, source, destination, priority):
         print('profile does not exist, creating')
         _create_profile(config, profile)
 
-    profile_file = _path_to_profile(config, profile)
-    with open(profile_file, 'r') as profile_db:
-        profile_json = json.load(profile_db)
+    profile_json = _read_profile(config, profile)
 
     if name in profile_json:
         log.warning('This name is already in use')
@@ -93,8 +109,7 @@ def add(config, profile, name, source, destination, priority):
     # the record kept for each slave in the profile
     profile_json[name] = { 'source': source, 'destination': destination, 'priority': priority }
 
-    with open(profile_file, 'w') as profile_db:
-        json.dump(profile_json, profile_db, indent=4)
+    _write_profile(config, profile, profile_json)
 
     print("added " + profile + '/' + name)
 
@@ -107,9 +122,7 @@ def edit(config, profile, name, source, destination, priority):
         log.warning('that profile does not exist')
         return
 
-    profile_file = _path_to_profile(config, profile)
-    with open(profile_file, 'r') as profile_db:
-        profile_json = json.load(profile_db)
+    profile_json = _read_profile(config, profile)
 
     if not name in profile_json:
         log.warning(profile + ' does not have a slave named ' + name)
@@ -124,8 +137,7 @@ def edit(config, profile, name, source, destination, priority):
     if priority:
         profile_json[name]['priority'] = priority
 
-    with open(profile_file, 'w') as profile_db:
-        json.dump(profile_json, profile_db, indent=4)
+    _write_profile(config, profile, profile_json)
 
     print("edited " + profile + '/' + name)
 
@@ -137,9 +149,7 @@ def remove(config, profile, name):
         log.warning('that profile does not exist')
         return
 
-    profile_file = _path_to_profile(config, profile)
-    with open(profile_file, 'r') as profile_db:
-        profile_json = json.load(profile_db)
+    profile_json = _read_profile(config, profile)
 
     if not name in profile_json:
         log.warning(profile + ' does not have a slave named ' + name)
@@ -147,8 +157,7 @@ def remove(config, profile, name):
 
     profile_json.pop(name)
 
-    with open(profile_file, 'w') as profile_db:
-        json.dump(profile_json, profile_db, indent=4)
+    _write_profile(config, profile, profile_json)
 
     print("removed " + profile + '/' + name)
 
@@ -168,8 +177,8 @@ def _list_available_profiles(config):
     # count the number of slaves in each profile, and print.
     for profile in profiles:
         profile_file = os.path.join(config['dir'], profile + '.json')
-        with open(profile_file, 'r') as profile_db:
-            slaves = json.load(profile_db)
+
+        slaves = _read_profile(config, profile)
 
         number_of_slaves = len(slaves)
 
@@ -189,9 +198,7 @@ def _list_profile(config, profile):
         log.warning('that profile does not exist')
         return
 
-    profile_file = _path_to_profile(config, profile)
-    with open(profile_file, 'r') as profile_db:
-        profile_json = json.load(profile_db)
+    profile_json = _read_profile(config, profile)
 
     table = [ ['name', 'source', 'destination', 'priority'] ]
 
@@ -283,9 +290,7 @@ def sync(config, profile):
         return
 
     try:
-        profile_file = _path_to_profile(config, profile)
-        with open(profile_file, 'r') as profile_db:
-            profile_json = json.load(profile_db)
+        profile_json = _read_profile(config, profile)
 
         sorted_slaves = sorted(profile_json, key = lambda k: profile_json[k]['priority'])
 
