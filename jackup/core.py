@@ -13,16 +13,24 @@ def _path_to_profile(config, profile):
     return os.path.join(config['dir'], profile + '.json')
 
 def _profile_exists(config, profile):
+    """
+    Returns whether PROFILE exists.
+    Is checked by the existence of the corresponding file in the jackup
+    directory.
+    """
     path = _path_to_profile(config, profile)
     return os.path.isfile(path)
 
 def _path_to_profile_lock(config, profile):
     """
-    Returns the path to the profile-lockfile belonging to PROFILE.
+    Returns the path to the lockfile belonging to PROFILE.
     """
     return os.path.join(config['dir'], profile + '.lock')
 
 def _lock_profile(config, profile):
+    """
+    Locks the specified PROFILE, so it can no longer be synchronized.
+    """
     lockfile = _path_to_profile_lock(config, profile)
 
     if os.path.isfile(lockfile):
@@ -32,6 +40,9 @@ def _lock_profile(config, profile):
     return True
 
 def _unlock_profile(config, profile):
+    """
+    Unlocks the specified PROFILE, so that it can again be synchronized.
+    """
     lockfile = _path_to_profile_lock(config, profile)
     if os.path.isfile(lockfile):
         os.remove(lockfile)
