@@ -23,6 +23,8 @@ def add(config, profile, name, source, destination, priority):
     Add a new slave with NAME, to PROFILE.
     SOURCE/DESTINATION can be either local files/folders, or remote locations,
     accessible through ssh.
+    PRIORITY is used to determine the order of synchronization, lower values
+    get synchronized first.
     """
     profile_file = _jackup_profile(config, profile)
     if not os.path.isfile(profile_file):
@@ -38,15 +40,19 @@ def add(config, profile, name, source, destination, priority):
         print('use `jackup edit <profile> <name>` to change settings inside this slave')
         return
 
+    priorities = [ profile_json[slave]['priority'] for slave in profile_json ]
+    if len(priorities) == 0:
+        priorities += [0]
+
     # if we add a new slave without a priority, place it last in the queue of
     # slaves to synchronize by giving it the largest priority
     if not priority:
-        priorities = [ profile_json[slave]['priority'] for slave in profile_json ]
+        priority = max(priorities) + 1
 
-        if len(priorities) == 0:
-            priority = 0
-        else:
-            priority = max(priorities) + 1
+    # dont allow any slaves to have the same priorities
+    if priority in priorities:
+        log.warning("This priority is already used")
+        return
 
     # the record kept for each slave in the profile
     profile_json[name] = { 'source': source, 'destination': destination, 'priority': priority }
