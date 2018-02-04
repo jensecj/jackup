@@ -21,32 +21,6 @@ def _profile_exists(config, profile):
     path = _path_to_profile(config, profile)
     return os.path.isfile(path)
 
-def _path_to_profile_lock(config, profile):
-    """
-    Returns the path to the lockfile belonging to PROFILE.
-    """
-    return os.path.join(config['dir'], profile + '.lock')
-
-def _lock_profile(config, profile):
-    """
-    Locks the specified PROFILE, so it can no longer be synchronized.
-    """
-    lockfile = _path_to_profile_lock(config, profile)
-
-    if os.path.isfile(lockfile):
-        return False
-
-    open(lockfile, 'w').close()
-    return True
-
-def _unlock_profile(config, profile):
-    """
-    Unlocks the specified PROFILE, so that it can again be synchronized.
-    """
-    lockfile = _path_to_profile_lock(config, profile)
-    if os.path.isfile(lockfile):
-        os.remove(lockfile)
-
 def _create_profile(config, profile):
     """
     Creates a new empty jackup profile.
@@ -72,6 +46,34 @@ def _write_profile(config, profile, profile_json):
     profile_file = _path_to_profile(config, profile)
     with open(profile_file, 'w') as profile_db:
         json.dump(profile_json, profile_db, indent=4)
+
+def _path_to_profile_lock(config, profile):
+    """
+    Returns the path to the lockfile belonging to PROFILE.
+    """
+    return os.path.join(config['dir'], profile + '.lock')
+
+def _lock_profile(config, profile):
+    """
+    Locks the specified PROFILE, so it can no longer be synchronized.
+    Returns True if profile was locked successfully, returns False if the
+    profile is already locked.
+    """
+    lockfile = _path_to_profile_lock(config, profile)
+
+    if os.path.isfile(lockfile):
+        return False
+
+    open(lockfile, 'w').close()
+    return True
+
+def _unlock_profile(config, profile):
+    """
+    Unlocks the specified PROFILE, so that it can again be synchronized.
+    """
+    lockfile = _path_to_profile_lock(config, profile)
+    if os.path.isfile(lockfile):
+        os.remove(lockfile)
 
 def add(config, profile, name, source, destination, priority):
     """
@@ -208,7 +210,8 @@ def _list_profile(config, profile):
     sorted_slaves = sorted(profile_json, key = lambda k: profile_json[k]['priority'])
 
     for slave in sorted_slaves:
-        table.append([ slave, profile_json[slave]['source'],
+        table.append([ slave,
+                       profile_json[slave]['source'],
                        profile_json[slave]['destination'],
                        str(profile_json[slave]['priority']) ])
 
