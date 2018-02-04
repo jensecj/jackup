@@ -116,33 +116,39 @@ def remove(config, profile, name):
 
     print("removed " + profile + '/' + name)
 
-def list(config, profile):
+def _list_available_profiles(config):
     """
-    List all available profiles, or, if given PROFILE, list all slaves in that
-    profile.
+    List all available profiles on the system.
     """
-    if not profile:
-        print('Profiles:')
+    profiles = []
+    for file in os.listdir(config['dir']):
+        # all files in the jackup-directory ending with .json are profile-files
+        if file.endswith('.json'):
+            # when extracting the profiles name from the filename, do not
+            # include the last 5 characters of the filename ('.json').
+            profiles.append(file[:-5])
 
-        profiles = []
-        for file in os.listdir(config['dir']):
-            if file.endswith('.json'):
-                profiles.append(file[:-5])
+    print('Profiles:')
+    # count the number of slaves in each profile, and print.
+    for profile in profiles:
+        profile_file = os.path.join(config['dir'], profile + '.json')
+        with open(profile_file, 'r') as profile_db:
+            slaves = json.load(profile_db)
 
-        # count the number of slaves in each profile, and print.
-        for prof in profiles:
-            prof_file = os.path.join(config['dir'], prof + '.json')
-            with open(prof_file, 'r') as profile_db:
-                prof_json = json.load(profile_db)
+        number_of_slaves = len(slaves)
 
-            # add plural `s` if the profile has more than one slave
-            slave_str = 'slave'
-            if len(prof_json) > 1:
-                slave_str += 's'
+        # add plural `s` if the profile has more than one slave
+        slave_string = 'slave'
+        if number_of_slaves > 1:
+            slave_string += 's'
 
-            print('* ' + prof + ' (' + str(len(prof_json)) + ' ' + slave_str + ')')
-        return
+        print('* ' + profile + ' (' + str(number_of_slaves) + ' ' + slave_string + ')')
 
+def _list_profile(config, profile):
+    """
+    List all slaves in a profile, their source, destination, and priority.
+    The listing is sorted by order.
+    """
     profile_file = _jackup_profile(config, profile)
     if not os.path.isfile(profile_file):
         log.warning('that profile does not exist')
@@ -162,6 +168,16 @@ def list(config, profile):
                        str(profile_json[slave]['priority']) ])
 
     tp.print_table(table)
+
+def list(config, profile):
+    """
+    If given a PROFILE, list all slaves in that profile, otherwise list all
+    available profiles on the system.
+    """
+    if profile:
+        _list_profile(config, profile)
+    else:
+        _list_available_profiles(config)
 
 def _rsync(config, slave, src, dest, excludes=[]):
     """
