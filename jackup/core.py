@@ -2,9 +2,9 @@ import os
 import json
 import subprocess
 
-import jackup.tableprinter as tp
 import jackup.sysutils as su
 import jackup.logging as log
+import jackup.tableprinter as tp
 
 def _path_to_profile(config, profile):
     """
@@ -76,6 +76,10 @@ def _unlock_profile(config, profile):
         os.remove(lockfile)
 
 def _sort_tasks_by_order(config, profile):
+    """
+    Returns a list of tasks from PROTILE, sorted by the order in which they will
+    be synchronized.
+    """
     tasks = _read_profile(config, profile)
     return sorted(tasks, key = lambda k: tasks[k]['priority'])
 
@@ -207,11 +211,8 @@ def _list_profile(config, profile):
         return
 
     tasks = _read_profile(config, profile)
-
-    table = [ ['task', 'source', 'destination', 'priority'] ]
-
-    # sort the tasks by priority, from smallest to largest
     sorted_tasks = _sort_tasks_by_order(config, profile)
+    table = [ ['task', 'source', 'destination', 'priority'] ]
 
     for task in sorted_tasks:
         table.append([ task,
