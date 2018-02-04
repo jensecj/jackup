@@ -75,6 +75,10 @@ def _unlock_profile(config, profile):
     if os.path.isfile(lockfile):
         os.remove(lockfile)
 
+def _sort_tasks_by_order(config, profile):
+    tasks = _read_profile(config, profile)
+    return sorted(tasks, key = lambda k: tasks[k]['priority'])
+
 def add(config, profile, task, source, destination, priority):
     """
     Add a new task with NAME, to PROFILE.
@@ -207,7 +211,7 @@ def _list_profile(config, profile):
     table = [ ['task', 'source', 'destination', 'priority'] ]
 
     # sort the tasks by priority, from smallest to largest
-    sorted_tasks = sorted(tasks, key = lambda k: tasks[k]['priority'])
+    sorted_tasks = _sort_tasks_by_order(config, profile)
 
     for task in sorted_tasks:
         table.append([ task,
@@ -295,7 +299,7 @@ def sync(config, profile):
 
     try:
         tasks = _read_profile(config, profile)
-        sorted_tasks = sorted(tasks, key = lambda k: tasks[k]['priority'])
+        sorted_tasks = _sort_tasks_by_order(config, profile)
 
         # keep count of how many tasks succeeded synchronizing
         syncs = 0
