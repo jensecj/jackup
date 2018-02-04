@@ -87,14 +87,14 @@ def add(config, profile, task, source, destination, priority):
         log.info('profile does not exist, creating')
         _create_profile(config, profile)
 
-    profile_json = _read_profile(config, profile)
+    tasks = _read_profile(config, profile)
 
-    if task in profile_json:
+    if task in tasks:
         log.warning('This name is already in use')
         log.info('use `jackup edit <profile> <name>` to change settings for this task')
         return
 
-    priorities = [ profile_json[t]['priority'] for t in profile_json ]
+    priorities = [ tasks[t]['priority'] for t in tasks ]
     if len(priorities) == 0:
         priorities += [0]
 
@@ -109,9 +109,9 @@ def add(config, profile, task, source, destination, priority):
         return
 
     # the record kept for each task in the profile
-    profile_json[task] = { 'source': source, 'destination': destination, 'priority': priority }
+    tasks[task] = { 'source': source, 'destination': destination, 'priority': priority }
 
-    _write_profile(config, profile, profile_json)
+    _write_profile(config, profile, tasks)
 
     log.info("added " + profile + '/' + task)
 
@@ -124,22 +124,22 @@ def edit(config, profile, task, source, destination, priority):
         log.warning('that profile does not exist')
         return
 
-    profile_json = _read_profile(config, profile)
+    tasks = _read_profile(config, profile)
 
-    if not task in profile_json:
+    if not task in tasks:
         log.warning(profile + ' does not have a task named ' + task)
         return
 
     if source:
-        profile_json[task]['source'] = source
+        tasks[task]['source'] = source
 
     if destination:
-        profile_json[task]['destination'] = destination
+        tasks[task]['destination'] = destination
 
     if priority:
-        profile_json[task]['priority'] = priority
+        tasks[task]['priority'] = priority
 
-    _write_profile(config, profile, profile_json)
+    _write_profile(config, profile, tasks)
 
     log.info("edited " + profile + '/' + task)
 
@@ -151,15 +151,15 @@ def remove(config, profile, task):
         log.warning('that profile does not exist')
         return
 
-    profile_json = _read_profile(config, profile)
+    tasks = _read_profile(config, profile)
 
-    if not task in profile_json:
+    if not task in tasks:
         log.warning(profile + ' does not have a task named ' + task)
         return
 
-    profile_json.pop(task)
+    tasks.pop(task)
 
-    _write_profile(config, profile, profile_json)
+    _write_profile(config, profile, tasks)
 
     log.info("removed " + profile + '/' + task)
 
@@ -202,18 +202,18 @@ def _list_profile(config, profile):
         log.warning('that profile does not exist')
         return
 
-    profile_json = _read_profile(config, profile)
+    tasks = _read_profile(config, profile)
 
     table = [ ['task', 'source', 'destination', 'priority'] ]
 
     # sort the tasks by priority, from smallest to largest
-    sorted_tasks = sorted(profile_json, key = lambda k: profile_json[k]['priority'])
+    sorted_tasks = sorted(tasks, key = lambda k: tasks[k]['priority'])
 
     for task in sorted_tasks:
         table.append([ task,
-                       profile_json[task]['source'],
-                       profile_json[task]['destination'],
-                       str(profile_json[task]['priority']) ])
+                       tasks[task]['source'],
+                       tasks[task]['destination'],
+                       str(tasks[task]['priority']) ])
 
     tp.print_table(table)
 
@@ -294,9 +294,8 @@ def sync(config, profile):
         return
 
     try:
-        profile_json = _read_profile(config, profile)
-
-        sorted_tasks = sorted(profile_json, key = lambda k: profile_json[k]['priority'])
+        tasks = _read_profile(config, profile)
+        sorted_tasks = sorted(tasks, key = lambda k: tasks[k]['priority'])
 
         # keep count of how many tasks succeeded synchronizing
         syncs = 0
@@ -304,7 +303,7 @@ def sync(config, profile):
         # try syncing the tasks in order
         for task in sorted_tasks:
             log.info('syncing ' + task)
-            if _sync_task(config, profile, task, profile_json[task]):
+            if _sync_task(config, profile, task, tasks[task]):
                 syncs += 1
 
         # done syncing, report statistics
