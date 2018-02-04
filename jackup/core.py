@@ -6,17 +6,32 @@ import jackup.tableprinter as tp
 import jackup.sysutils as su
 import jackup.logging as log
 
-def _jackup_profile(config, profile):
+def _path_to_profile(config, profile):
     """
     Returns the path to the profile-file belonging to PROFILE.
     """
     return os.path.join(config['dir'], profile + '.json')
 
-def _jackup_profile_lock(config, profile):
+
+def _path_to_profile_lock(config, profile):
     """
     Returns the path to the profile-lockfile belonging to PROFILE.
     """
     return os.path.join(config['dir'], profile + '.lock')
+
+def _lock_profile(config, profile):
+    lockfile = _path_to_profile_lock(config, profile)
+
+    if os.path.isfile(lockfile):
+        return False
+
+    open(lockfile, 'w').close()
+    return True
+
+def _unlock_profile(config, profile):
+    lockfile = _path_to_profile_lock(config, profile)
+    if os.path.isfile(lockfile):
+        os.remove(lockfile)
 
 def add(config, profile, name, source, destination, priority):
     """
@@ -26,7 +41,7 @@ def add(config, profile, name, source, destination, priority):
     PRIORITY is used to determine the order of synchronization, lower values
     get synchronized first.
     """
-    profile_file = _jackup_profile(config, profile)
+    profile_file = _path_to_profile(config, profile)
     if not os.path.isfile(profile_file):
         print('profile does not exist, creating')
         with open(profile_file, 'w') as profile_db:
@@ -67,7 +82,7 @@ def edit(config, profile, name, source, destination, priority):
     Edit a slave with NAME, in PROFILE.
     Allows changing values of a slave after creation.
     """
-    profile_file = _jackup_profile(config, profile)
+    profile_file = _path_to_profile(config, profile)
     if not os.path.isfile(profile_file):
         log.warning('that profile does not exist')
         return
@@ -97,7 +112,7 @@ def remove(config, profile, name):
     """
     Remove an existing slave with NAME, from PROFILE.
     """
-    profile_file = _jackup_profile(config, profile)
+    profile_file = _path_to_profile(config, profile)
     if not os.path.isfile(profile_file):
         log.warning('that profile does not exist')
         return
@@ -149,7 +164,7 @@ def _list_profile(config, profile):
     List all slaves in a profile, their source, destination, and priority.
     The listing is sorted by order.
     """
-    profile_file = _jackup_profile(config, profile)
+    profile_file = _path_to_profile(config, profile)
     if not os.path.isfile(profile_file):
         log.warning('that profile does not exist')
         return
@@ -237,22 +252,17 @@ def sync(config, profile):
     """
     Synchronizes all slaves in PROFILE.
     """
-    profile_file = _jackup_profile(config, profile)
+    profile_file = _path_to_profile(config, profile)
     if not os.path.isfile(profile_file):
         log.error("That profile does not exist.")
         return
 
-    lockfile = _jackup_profile_lock(config, profile)
-
-    # only try syncing if we can lock the repository
-    if os.path.isfile(lockfile):
+    # create the lock when we acquire it
+    if not _lock_profile(config, profile):
         log.error("`jackup sync` is already running for " + profile)
         return
 
     try:
-        # create the lock when we acquire it
-        open(lockfile, 'w').close()
-
         with open(profile_file, 'r') as profile_db:
             profile_json = json.load(profile_db)
 
@@ -283,5 +293,4 @@ def sync(config, profile):
         log.warning("\nsyncing interrupted by user.")
     finally:
         # free the lock for the profile
-        if os.path.isfile(lockfile):
-            os.remove(lockfile)
+        _unlock_profile(config, profile)
