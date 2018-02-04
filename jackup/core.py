@@ -12,6 +12,9 @@ def _path_to_profile(config, profile):
     """
     return os.path.join(config['dir'], profile + '.json')
 
+def _profile_exists(config, profile):
+    path = _path_to_profile(config, profile)
+    return os.path.isfile(path)
 
 def _path_to_profile_lock(config, profile):
     """
@@ -33,6 +36,14 @@ def _unlock_profile(config, profile):
     if os.path.isfile(lockfile):
         os.remove(lockfile)
 
+def _create_profile(config, profile):
+    """
+    Creates a new empty jackup profile.
+    """
+    path = _path_to_profile(config, profile)
+    with open(path, 'w') as profile_db:
+        json.dump({}, profile_db, indent=4)
+
 def add(config, profile, name, source, destination, priority):
     """
     Add a new slave with NAME, to PROFILE.
@@ -41,12 +52,11 @@ def add(config, profile, name, source, destination, priority):
     PRIORITY is used to determine the order of synchronization, lower values
     get synchronized first.
     """
-    profile_file = _path_to_profile(config, profile)
-    if not os.path.isfile(profile_file):
+    if not _profile_exists(config, profile):
         print('profile does not exist, creating')
-        with open(profile_file, 'w') as profile_db:
-            json.dump({}, profile_db, indent=4)
+        _create_profile(config, profile)
 
+    profile_file = _path_to_profile(config, profile)
     with open(profile_file, 'r') as profile_db:
         profile_json = json.load(profile_db)
 
@@ -82,11 +92,11 @@ def edit(config, profile, name, source, destination, priority):
     Edit a slave with NAME, in PROFILE.
     Allows changing values of a slave after creation.
     """
-    profile_file = _path_to_profile(config, profile)
-    if not os.path.isfile(profile_file):
+    if not _profile_exists(config, profile):
         log.warning('that profile does not exist')
         return
 
+    profile_file = _path_to_profile(config, profile)
     with open(profile_file, 'r') as profile_db:
         profile_json = json.load(profile_db)
 
@@ -112,11 +122,11 @@ def remove(config, profile, name):
     """
     Remove an existing slave with NAME, from PROFILE.
     """
-    profile_file = _path_to_profile(config, profile)
-    if not os.path.isfile(profile_file):
+    if not _profile_exists(config, profile):
         log.warning('that profile does not exist')
         return
 
+    profile_file = _path_to_profile(config, profile)
     with open(profile_file, 'r') as profile_db:
         profile_json = json.load(profile_db)
 
@@ -164,11 +174,11 @@ def _list_profile(config, profile):
     List all slaves in a profile, their source, destination, and priority.
     The listing is sorted by order.
     """
-    profile_file = _path_to_profile(config, profile)
-    if not os.path.isfile(profile_file):
+    if not _profile_exists(config, profile):
         log.warning('that profile does not exist')
         return
 
+    profile_file = _path_to_profile(config, profile)
     with open(profile_file, 'r') as profile_db:
         profile_json = json.load(profile_db)
 
@@ -252,8 +262,7 @@ def sync(config, profile):
     """
     Synchronizes all slaves in PROFILE.
     """
-    profile_file = _path_to_profile(config, profile)
-    if not os.path.isfile(profile_file):
+    if not _profile_exists(config, profile):
         log.error("That profile does not exist.")
         return
 
@@ -263,6 +272,7 @@ def sync(config, profile):
         return
 
     try:
+        profile_file = _path_to_profile(config, profile)
         with open(profile_file, 'r') as profile_db:
             profile_json = json.load(profile_db)
 
