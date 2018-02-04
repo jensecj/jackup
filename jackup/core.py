@@ -75,7 +75,7 @@ def _unlock_profile(config, profile):
     if os.path.isfile(lockfile):
         os.remove(lockfile)
 
-def add(config, profile, name, source, destination, priority):
+def add(config, profile, task, source, destination, priority):
     """
     Add a new task with NAME, to PROFILE.
     SOURCE/DESTINATION can be either local files/folders, or remote locations,
@@ -89,12 +89,12 @@ def add(config, profile, name, source, destination, priority):
 
     profile_json = _read_profile(config, profile)
 
-    if name in profile_json:
+    if task in profile_json:
         log.warning('This name is already in use')
         log.info('use `jackup edit <profile> <name>` to change settings for this task')
         return
 
-    priorities = [ profile_json[task]['priority'] for task in profile_json ]
+    priorities = [ profile_json[t]['priority'] for t in profile_json ]
     if len(priorities) == 0:
         priorities += [0]
 
@@ -109,15 +109,15 @@ def add(config, profile, name, source, destination, priority):
         return
 
     # the record kept for each task in the profile
-    profile_json[name] = { 'source': source, 'destination': destination, 'priority': priority }
+    profile_json[task] = { 'source': source, 'destination': destination, 'priority': priority }
 
     _write_profile(config, profile, profile_json)
 
-    log.info("added " + profile + '/' + name)
+    log.info("added " + profile + '/' + task)
 
-def edit(config, profile, name, source, destination, priority):
+def edit(config, profile, task, source, destination, priority):
     """
-    Edit a task with NAME, in PROFILE.
+    Edit TASK, in PROFILE.
     Allows changing values of a task after creation.
     """
     if not _profile_exists(config, profile):
@@ -126,24 +126,24 @@ def edit(config, profile, name, source, destination, priority):
 
     profile_json = _read_profile(config, profile)
 
-    if not name in profile_json:
-        log.warning(profile + ' does not have a task named ' + name)
+    if not task in profile_json:
+        log.warning(profile + ' does not have a task named ' + task)
         return
 
     if source:
-        profile_json[name]['source'] = source
+        profile_json[task]['source'] = source
 
     if destination:
-        profile_json[name]['destination'] = destination
+        profile_json[task]['destination'] = destination
 
     if priority:
-        profile_json[name]['priority'] = priority
+        profile_json[task]['priority'] = priority
 
     _write_profile(config, profile, profile_json)
 
-    log.info("edited " + profile + '/' + name)
+    log.info("edited " + profile + '/' + task)
 
-def remove(config, profile, name):
+def remove(config, profile, task):
     """
     Remove an existing task with NAME, from PROFILE.
     """
@@ -153,15 +153,15 @@ def remove(config, profile, name):
 
     profile_json = _read_profile(config, profile)
 
-    if not name in profile_json:
-        log.warning(profile + ' does not have a task named ' + name)
+    if not task in profile_json:
+        log.warning(profile + ' does not have a task named ' + task)
         return
 
-    profile_json.pop(name)
+    profile_json.pop(task)
 
     _write_profile(config, profile, profile_json)
 
-    log.info("removed " + profile + '/' + name)
+    log.info("removed " + profile + '/' + task)
 
 def _get_available_profiles(config):
     """
@@ -204,7 +204,7 @@ def _list_profile(config, profile):
 
     profile_json = _read_profile(config, profile)
 
-    table = [ ['name', 'source', 'destination', 'priority'] ]
+    table = [ ['task', 'source', 'destination', 'priority'] ]
 
     # sort the tasks by priority, from smallest to largest
     sorted_tasks = sorted(profile_json, key = lambda k: profile_json[k]['priority'])
