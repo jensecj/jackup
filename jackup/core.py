@@ -264,6 +264,22 @@ def _rsync(config, task, src, dest, excludes=[]):
     rsync_stderr = str(cmd_rsync.stderr, 'utf-8', 'ignore').strip()
     return rsync_stderr
 
+def _read_ignore_file(source):
+    """
+    Reads the .jackupignore file, if any, from a tasks source
+    """
+    folder = os.path.dirname(source)
+
+    excludes = []
+    ignore_file = os.path.join(folder, '.jackupignore')
+    if os.path.isfile(ignore_file):
+        with open(ignore_file, 'r') as ignore_db:
+            for line in ignore_db:
+                excludes.append(line.strip())
+
+    print(excludes)
+    return excludes
+
 def _sync_task(config, profile, task, record):
     """
     Handles syncing a tasks SOURCE to its DESTINATION.
@@ -273,12 +289,7 @@ def _sync_task(config, profile, task, record):
     log.success(task + ": " + record['source'] + ' -> ' + record['destination'])
 
     # if a .jackupignore file exists, parse it
-    excludes = []
-    ignore_file = os.path.join(record['source'], '.jackupignore')
-    if os.path.isfile(ignore_file):
-        with open(ignore_file, 'r') as ignore_db:
-            for line in ignore_db:
-                excludes.append(line.strip())
+    excludes = _read_ignore_file(record['source'])
 
     # try syncing the task
     rsync_stderr = _rsync(config, task, record['source'], record['destination'], excludes)
