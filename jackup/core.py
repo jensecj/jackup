@@ -334,20 +334,20 @@ def sync(config, profile):
     try:
         (completed_tasks, total_tasks) = _sync_profile(config, profile)
 
-        # done syncing, report statistics
-        task_count = str(completed_tasks) + '/' + str(total_tasks)
+        # report ratio of sucessful tasks to the total number of tasks,
+        # color coded, based on success-rate of the synchronization
+        task_ratio = str(completed_tasks) + '/' + str(total_tasks)
 
         if completed_tasks == 0 and total_tasks > 0:
-            task_count = log.RED(task_count)
+            task_ratio = log.RED(task_ratio)
         elif completed_tasks < total_tasks:
-            task_count = log.YELLOW(task_count)
+            task_ratio = log.YELLOW(task_ratio)
         else:
-            task_count = log.GREEN(task_count)
+            task_ratio = log.GREEN(task_ratio)
 
-        log.info('synchronized ' + task_count + " tasks")
+        log.info('synchronized ' + task_ratio + " tasks")
         log.info('completed syncing ' + profile)
     except KeyboardInterrupt:
         log.warning("\nsyncing interrupted by user.")
     finally:
-        # free the lock for the profile
         _unlock_profile(config, profile)
