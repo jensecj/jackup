@@ -75,13 +75,6 @@ def _unlock_profile(config, profile):
     if os.path.isfile(lockfile):
         os.remove(lockfile)
 
-def _sort_task_ids_by_order(tasks):
-    """
-    Returns a list of task ids from PROTILE, sorted by the order in which they will
-    be synchronized.
-    """
-    return sorted(tasks, key = lambda k: tasks[k]['order'])
-
 def _new_highest_order(tasks):
     """
     Get the highest order of any task in TASKS
@@ -206,6 +199,13 @@ def _list_available_profiles(config):
             task_string += 's'
 
         log.info('* ' + profile + ' (' + str(number_of_tasks) + ' ' + task_string + ')')
+
+def _sort_task_ids_by_order(tasks):
+    """
+    Returns a list of task ids from PROTILE, sorted by the order in which they will
+    be synchronized.
+    """
+    return sorted(tasks, key = lambda k: tasks[k]['order'])
 
 def _list_profile(config, profile):
     """
