@@ -18,7 +18,7 @@ def main():
     add_parser.add_argument("task", help="name of the task to add to the profile")
     add_parser.add_argument("source", help="source to sync from, can be a directory or file")
     add_parser.add_argument("destination", help="destination to sync to, can be a directory or file")
-    add_parser.add_argument('--priority', nargs='?', type=int, default=0, help="priority used to pick the order tasks are synchronized")
+    add_parser.add_argument('--order', nargs='?', type=int, default=0, help="order in which the tasks are synchronized")
     add_parser.set_defaults(func=add)
 
     edit_parser = subparsers.add_parser("edit", help="Edit a task in profile")
@@ -26,7 +26,7 @@ def main():
     edit_parser.add_argument("task", help="name of the task to edit")
     edit_parser.add_argument("--source", help="source to sync from, can be a directory or file")
     edit_parser.add_argument("--destination", help="destination to sync to, can be a directory or file")
-    edit_parser.add_argument('--priority', type=int, help="The priority of the task, used to determine the synchronization order")
+    edit_parser.add_argument('--order', type=int, help="order in which the tasks are synchronized")
     edit_parser.set_defaults(func=edit)
 
     remove_parser = subparsers.add_parser("remove", aliases=['rm'], help="Remove a task from profile")

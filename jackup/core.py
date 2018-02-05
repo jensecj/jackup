@@ -80,14 +80,14 @@ def _sort_task_ids_by_order(tasks):
     Returns a list of task ids from PROTILE, sorted by the order in which they will
     be synchronized.
     """
-    return sorted(tasks, key = lambda k: tasks[k]['priority'])
+    return sorted(tasks, key = lambda k: tasks[k]['order'])
 
-def add(config, profile, task, source, destination, priority):
+def add(config, profile, task, source, destination, order):
     """
     Add a new task with NAME, to PROFILE.
     SOURCE/DESTINATION can be either local files/folders, or remote locations,
     accessible through ssh.
-    PRIORITY is used to determine the order of synchronization, lower values
+    ORDER is used to determine the order of synchronization, lower values
     get synchronized first.
     """
     if not _profile_exists(config, profile):
@@ -101,28 +101,28 @@ def add(config, profile, task, source, destination, priority):
         log.info('use `jackup edit <profile> <name>` to change settings for this task')
         return
 
-    priorities = [ tasks[t]['priority'] for t in tasks ]
-    if len(priorities) == 0:
-        priorities += [0]
+    orders = [ tasks[t]['order'] for t in tasks ]
+    if len(orders) == 0:
+        orders += [0]
 
-    # if we add a new task without a priority, place it last in the queue of
-    # tasks to synchronize by giving it the largest priority
-    if not priority:
-        priority = max(priorities) + 1
+    # if we add a new task without an order, place it last in the queue of
+    # tasks to synchronize by giving it the largest order
+    if not order:
+        order = max(orders) + 1
 
-    # dont allow any tasks to have the same priorities
-    if priority in priorities:
-        log.warning("This priority is already used")
+    # dont allow any tasks to have the same orders
+    if order in orders:
+        log.warning("This order is already used")
         return
 
     # the record kept for each task in the profile
-    tasks[task] = { 'source': source, 'destination': destination, 'priority': priority }
+    tasks[task] = { 'source': source, 'destination': destination, 'order': order }
 
     _write_profile(config, profile, tasks)
 
     log.info("added " + profile + '/' + task)
 
-def edit(config, profile, task, source, destination, priority):
+def edit(config, profile, task, source, destination, order):
     """
     Edit TASK, in PROFILE.
     Allows changing values of a task after creation.
@@ -143,8 +143,8 @@ def edit(config, profile, task, source, destination, priority):
     if destination:
         tasks[task]['destination'] = destination
 
-    if priority:
-        tasks[task]['priority'] = priority
+    if order:
+        tasks[task]['order'] = order
 
     _write_profile(config, profile, tasks)
 
@@ -202,7 +202,7 @@ def _list_available_profiles(config):
 
 def _list_profile(config, profile):
     """
-    List all tasks in a profile, their source, destination, and priority.
+    List all tasks in a profile, their source, destination, and order.
     The listing is sorted by order.
     """
     if not _profile_exists(config, profile):
@@ -211,13 +211,13 @@ def _list_profile(config, profile):
 
     tasks = _read_profile(config, profile)
     sorted_task_ids = _sort_task_ids_by_order(tasks)
-    table = [ ['task', 'source', 'destination', 'priority'] ]
+    table = [ ['task', 'source', 'destination', 'order'] ]
 
     for task in sorted_task_ids:
         table.append([ task,
                        tasks[task]['source'],
                        tasks[task]['destination'],
-                       str(tasks[task]['priority']) ])
+                       str(tasks[task]['order']) ])
 
     tp.print_table(table)
 
