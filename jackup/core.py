@@ -82,6 +82,17 @@ def _sort_task_ids_by_order(tasks):
     """
     return sorted(tasks, key = lambda k: tasks[k]['order'])
 
+def _new_highest_order(tasks):
+    """
+    Get the highest order of any task in TASKS
+    """
+    # if there are no tasks in the profile, the new ordering starts at 1.
+    if len(tasks) == 0:
+        return 1
+
+    orders = [ tasks[t]['order'] for t in tasks ]
+    return max(orders) + 1
+
 def add(config, profile, task, source, destination, order):
     """
     Add a new task with NAME, to PROFILE.
@@ -101,14 +112,10 @@ def add(config, profile, task, source, destination, order):
         log.info('use `jackup edit <profile> <name>` to change settings for this task')
         return
 
-    orders = [ tasks[t]['order'] for t in tasks ]
-    if len(orders) == 0:
-        orders += [0]
-
     # if we add a new task without an order, place it last in the queue of
     # tasks to synchronize by giving it the largest order
     if not order:
-        order = max(orders) + 1
+        order = _new_highest_order(tasks)
 
     # dont allow any tasks to have the same orders
     if order in orders:
