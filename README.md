@@ -56,7 +56,7 @@ For help see `jackup --help`, or command specific help with `jackup <command> --
 To start off with you need to create a profile, and add some tasks to it.
 A new profile is automatically created as you start adding:
 ```bash
-$ jackup add <profile name> <task name> <source> <destination> [--priority N]
+$ jackup add <profile name> <task name> <source> <destination> [--order N]
 ```
 The profile name is what you refer to when you want to sync.
 
@@ -76,8 +76,8 @@ HostName 192.168.0.4
 Port 8022
 ```
 
-`--priority` takes a number, and indicates in which order the tasks will be
-synched, 0 being the first one.
+`--order` takes a number, and indicates in which order the tasks will be
+synched, 1 being the first one.
 
 Removing a task from the profile is done by name:
 ```bash
@@ -87,7 +87,7 @@ $ jackup remove <profile name> <task name>
 If you want to change something in a task you have already added to a profile,
 you can use `edit`:
 ```bash
-$ jackup edit <profile name> <task name> [--source <path>] [--destination <path>] [--priority <number>]
+$ jackup edit <profile name> <task name> [--source <path>] [--destination <path>] [--order <number>]
 ```
 Where each flag changes the related property of the task. Multiple flags can be
 changed at the same time.
@@ -97,7 +97,7 @@ Once you're ready to sync, run:
 $ jackup sync <profile name>
 ```
 Jackup will then try to sync to all available tasks, it will perform
-synchronization in the order determined by each tasks priority, from smallest
+synchronization in the order determined by each tasks order, from smallest
 to largest (smallest will be synchronized first).
 If either the source or destination of a task is unavailable
 (no SSH-connection, unmounted, etc.) Jackup will tell you.
@@ -109,11 +109,11 @@ $ jackup list [<profile name>]
 
 Listing all tasks in a profile gives you a list like this:
 ```
-name             | source                               | destination                          | priority
+name             | source                               | destination                          | order
 -----------------+--------------------------------------+--------------------------------------+---------
-grab_phone_media | jens@192.168.0.4:/home/storage/media | /home/jens/master                    | 0
-to_exhdd         | /home/jens/master                    | /mnt/extern/backups                  | 1
-to_server        | /home/jens/master                    | jens@192.168.0.4:/home/stuetop/JENS/ | 2
+grab_phone_media | jens@192.168.0.4:/home/storage/media | /home/jens/master                    | 1
+to_exhdd         | /home/jens/master                    | /mnt/extern/backups                  | 2
+to_server        | /home/jens/master                    | jens@192.168.0.4:/home/stuetop/JENS/ | 3
 
 ```
 
