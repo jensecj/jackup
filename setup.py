@@ -7,7 +7,7 @@ if version < (3, 6):
     sys.exit(-1)
 
 setup(name='jackup',
-      version='0.2',
+      version='0.3',
       description='Simple synchronization',
       url='http://github.com/jensecj/jackup',
       author='Jens Christian Jensen',
