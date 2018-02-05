@@ -238,7 +238,7 @@ def list(config, profile):
     else:
         _list_available_profiles(config)
 
-def _rsync(config, task, src, dest, excludes=[]):
+def _rsync(config, source, destination, excludes=[]):
     """
     Wrapper for =rsync=, handles syncing SOURCE to DESTINATION.
     """
@@ -260,7 +260,7 @@ def _rsync(config, task, src, dest, excludes=[]):
         rsync_args += ['--exclude=' + ex]
 
     # call the `rsync` tool, capture errors and return them if any.
-    cmd_rsync = subprocess.run(['rsync'] + rsync_args + [src, dest], stderr=subprocess.PIPE)
+    cmd_rsync = subprocess.run(['rsync'] + rsync_args + [source, destination], stderr=subprocess.PIPE)
     rsync_stderr = str(cmd_rsync.stderr, 'utf-8', 'ignore').strip()
     return rsync_stderr
 
@@ -282,20 +282,17 @@ def _read_ignore_file(config, profile, task):
 
 def _sync_task(config, profile, task):
     """
-    Handles syncing a tasks SOURCE to its DESTINATION.
-    Tries to parse the .jackupignore file if any, and then delegates syncing to
-    `_rsync`.
+    Tries to synchronize a task.
     """
     tasks = _read_profile(config, profile)
-    record = tasks[task]
 
-    log.info('syncing ' + task + ": " + record['source'] + ' -> ' + record['destination'])
+    log.info('syncing ' + task + ": " + tasks[task]['source'] + ' -> ' + tasks[task]['destination'])
 
     # if a .jackupignore file exists for this task, use it
     excludes = _read_ignore_file(config, profile, task)
 
     # try syncing the task
-    rsync_stderr = _rsync(config, task, record['source'], record['destination'], excludes)
+    rsync_stderr = _rsync(config, tasks[task]['source'], tasks[task]['destination'], excludes)
 
     # if any errors were found, log them and exit
     if rsync_stderr:
