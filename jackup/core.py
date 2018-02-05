@@ -110,12 +110,10 @@ def add(config, profile, task, source, destination, order):
     if not order:
         order = _new_highest_order(tasks)
 
-    # dont allow any tasks to have the same orders
     if order in orders:
         log.warning("This order is already used")
         return
 
-    # the record kept for each task in the profile
     tasks[task] = { 'source': source, 'destination': destination, 'order': order }
 
     _write_profile(config, profile, tasks)
@@ -187,7 +185,7 @@ def _list_available_profiles(config):
     List all available profiles on the system.
     """
     log.info('Profiles:')
-    # count the number of tasks in each profile, and print.
+
     for profile in _get_available_profiles(config):
         tasks = _read_profile(config, profile)
 
@@ -255,7 +253,6 @@ def _rsync(config, source, destination, excludes=[]):
                   '--delete'
     ]
 
-    # include the excludes as rsync ignore rules
     for ex in excludes:
         rsync_args += ['--exclude=' + ex]
 
@@ -288,13 +285,9 @@ def _sync_task(config, profile, task):
 
     log.info('syncing ' + task + ": " + tasks[task]['source'] + ' -> ' + tasks[task]['destination'])
 
-    # if a .jackupignore file exists for this task, use it
     excludes = _read_ignore_file(config, profile, task)
-
-    # try syncing the task
     rsync_stderr = _rsync(config, tasks[task]['source'], tasks[task]['destination'], excludes)
 
-    # if any errors were found, log them and exit
     if rsync_stderr:
         log.error('failed syncing ' + profile + '/' + task)
         log.error(rsync_stderr)
