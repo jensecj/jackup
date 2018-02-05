@@ -209,8 +209,8 @@ def _sort_task_ids_by_order(tasks):
 
 def _list_profile(config, profile):
     """
-    List all tasks in a profile, their source, destination, and order.
-    The listing is sorted by order.
+    List all tasks in PROFILE, their source, destination, and order.
+    The listing is sorted by order of synchronization.
     """
     if not _profile_exists(config, profile):
         log.warning('that profile does not exist')
@@ -218,8 +218,8 @@ def _list_profile(config, profile):
 
     tasks = _read_profile(config, profile)
     sorted_task_ids = _sort_task_ids_by_order(tasks)
-    table = [ ['task', 'source', 'destination', 'order'] ]
 
+    table = [ ['task', 'source', 'destination', 'order'] ]
     for task in sorted_task_ids:
         table.append([ task,
                        tasks[task]['source'],
@@ -264,11 +264,12 @@ def _rsync(config, task, src, dest, excludes=[]):
     rsync_stderr = str(cmd_rsync.stderr, 'utf-8', 'ignore').strip()
     return rsync_stderr
 
-def _read_ignore_file(source):
+def _read_ignore_file(config, profile, task):
     """
     Reads the .jackupignore file, if any, from a tasks source
     """
-    folder = os.path.dirname(source)
+    tasks = _read_profile(config, profile)
+    folder = os.path.dirname(tasks[task]['source'])
 
     excludes = []
     ignore_file = os.path.join(folder, '.jackupignore')
@@ -277,19 +278,21 @@ def _read_ignore_file(source):
             for line in ignore_db:
                 excludes.append(line.strip())
 
-    print(excludes)
     return excludes
 
-def _sync_task(config, profile, task, record):
+def _sync_task(config, profile, task):
     """
     Handles syncing a tasks SOURCE to its DESTINATION.
     Tries to parse the .jackupignore file if any, and then delegates syncing to
     `_rsync`.
     """
-    log.success(task + ": " + record['source'] + ' -> ' + record['destination'])
+    tasks = _read_profile(config, profile)
+    record = tasks[task]
 
-    # if a .jackupignore file exists, parse it
-    excludes = _read_ignore_file(record['source'])
+    log.info('syncing ' + task + ": " + record['source'] + ' -> ' + record['destination'])
+
+    # if a .jackupignore file exists for this task, use it
+    excludes = _read_ignore_file(config, profile, task)
 
     # try syncing the task
     rsync_stderr = _rsync(config, task, record['source'], record['destination'], excludes)
@@ -313,8 +316,7 @@ def _sync_profile(config, profile):
 
     completed = 0
     for task_id in sorted_task_ids:
-        log.info('syncing ' + task_id)
-        if _sync_task(config, profile, task_id, tasks[task_id]):
+        if _sync_task(config, profile, task_id):
             completed += 1
 
     return (completed, len(tasks))
