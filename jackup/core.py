@@ -75,12 +75,11 @@ def _unlock_profile(config, profile):
     if os.path.isfile(lockfile):
         os.remove(lockfile)
 
-def _sort_tasks_by_order(config, profile):
+def _sort_task_ids_by_order(tasks):
     """
-    Returns a list of tasks from PROTILE, sorted by the order in which they will
+    Returns a list of task ids from PROTILE, sorted by the order in which they will
     be synchronized.
     """
-    tasks = _read_profile(config, profile)
     return sorted(tasks, key = lambda k: tasks[k]['priority'])
 
 def add(config, profile, task, source, destination, priority):
@@ -211,10 +210,10 @@ def _list_profile(config, profile):
         return
 
     tasks = _read_profile(config, profile)
-    sorted_tasks = _sort_tasks_by_order(config, profile)
+    sorted_task_ids = _sort_task_ids_by_order(tasks)
     table = [ ['task', 'source', 'destination', 'priority'] ]
 
-    for task in sorted_tasks:
+    for task in sorted_task_ids:
         table.append([ task,
                        tasks[task]['source'],
                        tasks[task]['destination'],
@@ -286,6 +285,22 @@ def _sync_task(config, profile, task, record):
     log.success('completed syncing ' + profile + '/' + task)
     return True
 
+def _sync_profile(config, profile):
+    """
+    Tries to synchronize all tasks in PROFILE.
+    Returns a tuple of successful tasks, and total tasks.
+    """
+    tasks = _read_profile(config, profile)
+    sorted_task_ids = _sort_task_ids_by_order(tasks)
+
+    completed = 0
+    for task_id in sorted_task_ids:
+        log.info('syncing ' + task_id)
+        if _sync_task(config, profile, task_id, tasks[task_id]):
+            completed += 1
+
+    return (completed, len(tasks))
+
 def sync(config, profile):
     """
     Synchronizes all tasks in PROFILE.
@@ -299,30 +314,20 @@ def sync(config, profile):
         return
 
     try:
-        tasks = _read_profile(config, profile)
-        sorted_tasks = _sort_tasks_by_order(config, profile)
-
-        # keep count of how many tasks succeeded synchronizing
-        syncs = 0
-
-        # try syncing the tasks in order
-        for task in sorted_tasks:
-            log.info('syncing ' + task)
-            if _sync_task(config, profile, task, tasks[task]):
-                syncs += 1
+        (completed_tasks, total_tasks) = _sync_profile(config, profile)
 
         # done syncing, report statistics
-        task_count = str(syncs) + '/' + str(len(sorted_tasks))
+        task_count = str(completed_tasks) + '/' + str(total_tasks)
 
-        if syncs == 0 and len(sorted_tasks) > 0:
+        if completed_tasks == 0 and total_tasks > 0:
             task_count = log.RED(task_count)
-        elif syncs < len(sorted_tasks):
+        elif completed_tasks < total_tasks:
             task_count = log.YELLOW(task_count)
         else:
             task_count = log.GREEN(task_count)
 
-            log.info('synchronized ' + task_count + " tasks")
-            log.info('completed syncing ' + profile)
+        log.info('synchronized ' + task_count + " tasks")
+        log.info('completed syncing ' + profile)
     except KeyboardInterrupt:
         log.warning("\nsyncing interrupted by user.")
     finally:
