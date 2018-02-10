@@ -18,7 +18,7 @@ def _new_highest_order(tasks):
     orders = [ tasks[t]['order'] for t in tasks ]
     return max(orders) + 1
 
-def add(config, profile, task, source, destination, order):
+def add(config, profile_name, task_name, source, destination, order):
     """
     Add a new task with NAME, to PROFILE.
     SOURCE/DESTINATION can be either local files/folders, or remote locations,
@@ -26,13 +26,13 @@ def add(config, profile, task, source, destination, order):
     ORDER is used to determine the order of synchronization, lower values
     get synchronized first.
     """
-    if not prof.exists(config, profile):
+    if not prof.exists(config, profile_name):
         log.info('profile does not exist, creating')
-        prof.create(config, profile)
+        prof.create(config, profile_name)
 
-    tasks = prof.read(config, profile)
+    tasks = prof.read(config, profile_name)
 
-    if task in tasks:
+    if task_name in tasks:
         log.warning('This name is already in use')
         log.info('use `jackup edit <profile> <name>` to change settings for this task')
         return
@@ -47,59 +47,59 @@ def add(config, profile, task, source, destination, order):
         log.warning("This order is already used")
         return
 
-    tasks[task] = { 'source': source, 'destination': destination, 'order': order }
+    tasks[task_name] = { 'source': source, 'destination': destination, 'order': order }
 
-    prof.write(config, profile, tasks)
+    prof.write(config, profile_name, tasks)
 
-    log.info("added " + profile + '/' + task)
+    log.info("added " + profile_name + '/' + task_name)
 
-def edit(config, profile, task, source, destination, order):
+def edit(config, profile_name, task_name, source, destination, order):
     """
     Edit TASK, in PROFILE.
     Allows changing values of a task after creation.
     """
-    if not prof.exists(config, profile):
+    if not prof.exists(config, profile_name):
         log.warning('that profile does not exist')
         return
 
-    tasks = prof.read(config, profile)
+    tasks = prof.read(config, profile_name)
 
-    if not task in tasks:
-        log.warning(profile + ' does not have a task named ' + task)
+    if not task_name in tasks:
+        log.warning(profile_name + ' does not have a task named ' + task_name)
         return
 
     if source:
-        tasks[task]['source'] = source
+        tasks[task_name]['source'] = source
 
     if destination:
-        tasks[task]['destination'] = destination
+        tasks[task_name]['destination'] = destination
 
     if order:
-        tasks[task]['order'] = order
+        tasks[task_name]['order'] = order
 
-    prof.write(config, profile, tasks)
+    prof.write(config, profile_name, tasks)
 
-    log.info("edited " + profile + '/' + task)
+    log.info("edited " + profile_name + '/' + task_name)
 
-def remove(config, profile, task):
+def remove(config, profile_name, task_name):
     """
     Remove an existing task with NAME, from PROFILE.
     """
-    if not prof.exists(config, profile):
+    if not prof.exists(config, profile_name):
         log.warning('that profile does not exist')
         return
 
-    tasks = prof.read(config, profile)
+    tasks = prof.read(config, profile_name)
 
-    if not task in tasks:
-        log.warning(profile + ' does not have a task named ' + task)
+    if not task_name in tasks:
+        log.warning(profile_name + ' does not have a task named ' + task_name)
         return
 
-    tasks.pop(task)
+    tasks.pop(task_name)
 
-    prof.write(config, profile, tasks)
+    prof.write(config, profile_name, tasks)
 
-    log.info("removed " + profile + '/' + task)
+    log.info("removed " + profile_name + '/' + task_name)
 
 def _list_available_profiles(config):
     """
@@ -126,16 +126,16 @@ def _sort_task_ids_by_order(tasks):
     """
     return sorted(tasks, key = lambda k: tasks[k]['order'])
 
-def _list_profile(config, profile):
+def _list_profile(config, profile_name):
     """
     List all tasks in PROFILE, their source, destination, and order.
     The listing is sorted by order of synchronization.
     """
-    if not prof.exists(config, profile):
+    if not prof.exists(config, profile_name):
         log.warning('that profile does not exist')
         return
 
-    tasks = prof.read(config, profile)
+    tasks = prof.read(config, profile_name)
     sorted_task_ids = _sort_task_ids_by_order(tasks)
 
     table = [ ['task', 'source', 'destination', 'order'] ]
@@ -147,13 +147,13 @@ def _list_profile(config, profile):
 
     tp.print_table(table)
 
-def list(config, profile):
+def list(config, profile_name):
     """
     If given a PROFILE, list all tasks in that profile, otherwise list all
     available profiles on the system.
     """
-    if profile:
-        _list_profile(config, profile)
+    if profile_name:
+        _list_profile(config, profile_name)
     else:
         _list_available_profiles(config)
 
@@ -182,12 +182,12 @@ def _rsync(config, source, destination, excludes=[]):
     rsync_stderr = str(cmd_rsync.stderr, 'utf-8', 'ignore').strip()
     return rsync_stderr
 
-def _read_ignore_file(config, profile, task):
+def _read_ignore_file(config, profile_name, task_name):
     """
     Reads the .jackupignore file, if any, from a tasks source
     """
-    tasks = prof.read(config, profile)
-    folder = os.path.dirname(tasks[task]['source'])
+    tasks = prof.read(config, profile_name)
+    folder = os.path.dirname(tasks[task_name]['source'])
 
     excludes = []
     ignore_file = os.path.join(folder, '.jackupignore')
@@ -198,54 +198,54 @@ def _read_ignore_file(config, profile, task):
 
     return excludes
 
-def _sync_task(config, profile, task):
+def _sync_task(config, profile_name, task_name):
     """
     Tries to synchronize a task.
     """
-    tasks = prof.read(config, profile)
+    tasks = prof.read(config, profile_name)
 
-    log.info('syncing ' + task + ": " + tasks[task]['source'] + ' -> ' + tasks[task]['destination'])
+    log.info('syncing ' + task_name + ": " + tasks[task_name]['source'] + ' -> ' + tasks[task_name]['destination'])
 
-    excludes = _read_ignore_file(config, profile, task)
-    rsync_stderr = _rsync(config, tasks[task]['source'], tasks[task]['destination'], excludes)
+    excludes = _read_ignore_file(config, profile_name, task_name)
+    rsync_stderr = _rsync(config, tasks[task_name]['source'], tasks[task_name]['destination'], excludes)
 
     if rsync_stderr:
-        log.error('failed syncing ' + profile + '/' + task)
+        log.error('failed syncing ' + profile_name + '/' + task_name)
         log.error(rsync_stderr)
         return False
 
-    log.success('completed syncing ' + profile + '/' + task)
+    log.success('completed syncing ' + profile_name + '/' + task_name)
     return True
 
-def _sync_profile(config, profile):
+def _sync_profile(config, profile_name):
     """
     Tries to synchronize all tasks in PROFILE.
     Returns a tuple of successful tasks, and total tasks.
     """
-    tasks = prof.read(config, profile)
+    tasks = prof.read(config, profile_name)
     sorted_task_ids = _sort_task_ids_by_order(tasks)
 
     completed = 0
     for task_id in sorted_task_ids:
-        if _sync_task(config, profile, task_id):
+        if _sync_task(config, profile_name, task_id):
             completed += 1
 
     return (completed, len(tasks))
 
-def sync(config, profile):
+def sync(config, profile_name):
     """
     Synchronizes all tasks in PROFILE.
     """
-    if not prof.exists(config, profile):
+    if not prof.exists(config, profile_name):
         log.error("That profile does not exist.")
         return
 
-    if not prof.lock(config, profile):
-        log.error("`jackup sync` is already running for " + profile)
+    if not prof.lock(config, profile_name):
+        log.error("`jackup sync` is already running for " + profile_name)
         return
 
     try:
-        (completed_tasks, total_tasks) = _sync_profile(config, profile)
+        (completed_tasks, total_tasks) = _sync_profile(config, profile_name)
 
         # report ratio of sucessful tasks to the total number of tasks,
         # color coded, based on success-rate of the synchronization
@@ -259,8 +259,8 @@ def sync(config, profile):
             task_ratio = log.GREEN(task_ratio)
 
         log.info('synchronized ' + task_ratio + " tasks")
-        log.info('completed syncing ' + profile)
+        log.info('completed syncing ' + profile_name)
     except KeyboardInterrupt:
         log.warning("\nsyncing interrupted by user.")
     finally:
-        prof.unlock(config, profile)
+        prof.unlock(config, profile_name)
