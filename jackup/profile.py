@@ -60,6 +60,17 @@ def available_profiles(config):
                  if profile.endswith('.json') ] # that end with '.json', these are the profiles
     return profiles
 
+def max_order(profile):
+    """
+    Get the highest order of any task in PROFILE
+    """
+    # if there are no tasks in the profile, the new ordering starts at 1.
+    if len(profile) == 0:
+        return 1
+
+    orders = [ profile[task]['order'] for task in profile ]
+    return max(orders)
+
 def lock(config, profile):
     """
     Locks the specified PROFILE, so it can no longer be synchronized.

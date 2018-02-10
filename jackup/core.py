@@ -7,17 +7,6 @@ import jackup.profile as prof
 import jackup.logging as log
 import jackup.tableprinter as tp
 
-def _new_highest_order(tasks):
-    """
-    Get the highest order of any task in TASKS
-    """
-    # if there are no tasks in the profile, the new ordering starts at 1.
-    if len(tasks) == 0:
-        return 1
-
-    orders = [ tasks[t]['order'] for t in tasks ]
-    return max(orders) + 1
-
 def add(config, profile_name, task_name, source, destination, order):
     """
     Add a new task with NAME, to PROFILE.
@@ -40,7 +29,7 @@ def add(config, profile_name, task_name, source, destination, order):
     # if we add a new task without an order, place it last in the queue of
     # tasks to synchronize by giving it the largest order
     if not order:
-        order = _new_highest_order(profile)
+        order = prof.max_order(profile) + 1
 
     orders = [ profile[task]['order'] for task in profile ]
     if order in orders:
