@@ -30,9 +30,9 @@ def add(config, profile_name, task_name, source, destination, order):
         log.info('profile does not exist, creating')
         prof.create(config, profile_name)
 
-    tasks = prof.read(config, profile_name)
+    profile = prof.read(config, profile_name)
 
-    if task_name in tasks:
+    if task_name in profile:
         log.warning('This name is already in use')
         log.info('use `jackup edit <profile> <name>` to change settings for this task')
         return
@@ -40,16 +40,16 @@ def add(config, profile_name, task_name, source, destination, order):
     # if we add a new task without an order, place it last in the queue of
     # tasks to synchronize by giving it the largest order
     if not order:
-        order = _new_highest_order(tasks)
+        order = _new_highest_order(profile)
 
-    orders = [ tasks[t]['order'] for t in tasks ]
+    orders = [ profile[task]['order'] for task in profile ]
     if order in orders:
         log.warning("This order is already used")
         return
 
-    tasks[task_name] = { 'source': source, 'destination': destination, 'order': order }
+    profile[task_name] = { 'source': source, 'destination': destination, 'order': order }
 
-    prof.write(config, profile_name, tasks)
+    prof.write(config, profile_name, profile)
 
     log.info("added " + profile_name + '/' + task_name)
 
@@ -62,22 +62,22 @@ def edit(config, profile_name, task_name, source, destination, order):
         log.warning('that profile does not exist')
         return
 
-    tasks = prof.read(config, profile_name)
+    profile = prof.read(config, profile_name)
 
-    if not task_name in tasks:
+    if not task_name in profile:
         log.warning(profile_name + ' does not have a task named ' + task_name)
         return
 
     if source:
-        tasks[task_name]['source'] = source
+        profile[task_name]['source'] = source
 
     if destination:
-        tasks[task_name]['destination'] = destination
+        profile[task_name]['destination'] = destination
 
     if order:
-        tasks[task_name]['order'] = order
+        profile[task_name]['order'] = order
 
-    prof.write(config, profile_name, tasks)
+    prof.write(config, profile_name, profile)
 
     log.info("edited " + profile_name + '/' + task_name)
 
@@ -89,15 +89,15 @@ def remove(config, profile_name, task_name):
         log.warning('that profile does not exist')
         return
 
-    tasks = prof.read(config, profile_name)
+    profile = prof.read(config, profile_name)
 
-    if not task_name in tasks:
+    if not task_name in profile:
         log.warning(profile_name + ' does not have a task named ' + task_name)
         return
 
-    tasks.pop(task_name)
+    profile.pop(task_name)
 
-    prof.write(config, profile_name, tasks)
+    prof.write(config, profile_name, profile)
 
     log.info("removed " + profile_name + '/' + task_name)
 
@@ -107,24 +107,24 @@ def _list_available_profiles(config):
     """
     log.info('Profiles:')
 
-    for profile in prof.available_profiles(config):
-        tasks = prof.read(config, profile)
+    for profile_name in prof.available_profiles(config):
+        profile = prof.read(config, profile_name)
 
-        number_of_tasks = len(tasks)
+        number_of_tasks = len(profile)
 
         # add plural `s` if the profile has more than one task
         task_string = 'task'
         if number_of_tasks > 1:
             task_string += 's'
 
-        log.info('* ' + profile + ' (' + str(number_of_tasks) + ' ' + task_string + ')')
+        log.info('* ' + profile_name + ' (' + str(number_of_tasks) + ' ' + task_string + ')')
 
-def _sort_task_ids_by_order(tasks):
+def _sort_task_ids_by_order(profile):
     """
     Returns a list of task ids from PROTILE, sorted by the order in which they will
     be synchronized.
     """
-    return sorted(tasks, key = lambda k: tasks[k]['order'])
+    return sorted(profile, key = lambda task: profile[task]['order'])
 
 def _list_profile(config, profile_name):
     """
@@ -135,15 +135,15 @@ def _list_profile(config, profile_name):
         log.warning('that profile does not exist')
         return
 
-    tasks = prof.read(config, profile_name)
-    sorted_task_ids = _sort_task_ids_by_order(tasks)
+    profile = prof.read(config, profile_name)
+    sorted_task_ids = _sort_task_ids_by_order(profile)
 
     table = [ ['task', 'source', 'destination', 'order'] ]
     for task in sorted_task_ids:
         table.append([ task,
-                       tasks[task]['source'],
-                       tasks[task]['destination'],
-                       str(tasks[task]['order']) ])
+                       profile[task]['source'],
+                       profile[task]['destination'],
+                       str(profile[task]['order']) ])
 
     tp.print_table(table)
 
@@ -186,8 +186,8 @@ def _read_ignore_file(config, profile_name, task_name):
     """
     Reads the .jackupignore file, if any, from a tasks source
     """
-    tasks = prof.read(config, profile_name)
-    folder = os.path.dirname(tasks[task_name]['source'])
+    profile = prof.read(config, profile_name)
+    folder = os.path.dirname(profile[task_name]['source'])
 
     excludes = []
     ignore_file = os.path.join(folder, '.jackupignore')
@@ -202,12 +202,12 @@ def _sync_task(config, profile_name, task_name):
     """
     Tries to synchronize a task.
     """
-    tasks = prof.read(config, profile_name)
+    profile = prof.read(config, profile_name)
 
-    log.info('syncing ' + task_name + ": " + tasks[task_name]['source'] + ' -> ' + tasks[task_name]['destination'])
+    log.info('syncing ' + task_name + ": " + profile[task_name]['source'] + ' -> ' + profile[task_name]['destination'])
 
     excludes = _read_ignore_file(config, profile_name, task_name)
-    rsync_stderr = _rsync(config, tasks[task_name]['source'], tasks[task_name]['destination'], excludes)
+    rsync_stderr = _rsync(config, profile[task_name]['source'], profile[task_name]['destination'], excludes)
 
     if rsync_stderr:
         log.error('failed syncing ' + profile_name + '/' + task_name)
@@ -222,15 +222,15 @@ def _sync_profile(config, profile_name):
     Tries to synchronize all tasks in PROFILE.
     Returns a tuple of successful tasks, and total tasks.
     """
-    tasks = prof.read(config, profile_name)
-    sorted_task_ids = _sort_task_ids_by_order(tasks)
+    profile = prof.read(config, profile_name)
+    sorted_task_ids = _sort_task_ids_by_order(profile)
 
     completed = 0
     for task_id in sorted_task_ids:
         if _sync_task(config, profile_name, task_id):
             completed += 1
 
-    return (completed, len(tasks))
+    return (completed, len(profile))
 
 def sync(config, profile_name):
     """
