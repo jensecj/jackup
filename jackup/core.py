@@ -173,24 +173,20 @@ def _read_ignore_file(config, folder):
 
     return excludes
 
-def _sync_task(config, profile_name, task_name):
+def _sync_task(config, task):
     """
     Tries to synchronize a task.
     """
-    profile = prof.read(config, profile_name)
+    log.info('Syncing ' + task['name'] + ": " + task['source'] + ' -> ' + task['destination'])
 
-    log.info('Syncing ' + task_name + ": " + profile[task_name]['source'] + ' -> ' + profile[task_name]['destination'])
-
-    excludes = _read_ignore_file(config, profile[task_name]['source'])
-    rsync_stderr = _rsync(config, profile[task_name]['source'], profile[task_name]['destination'], excludes)
+    excludes = _read_ignore_file(config, task['source'])
+    rsync_stderr = _rsync(config, task['source'], task['destination'], excludes)
 
     if rsync_stderr:
-        log.error('Failed syncing ' + profile_name + '/' + task_name)
         log.error(rsync_stderr)
         return False
-
-    log.success('Completed syncing ' + profile_name + '/' + task_name)
-    return True
+    else:
+        return True
 
 def _sync_profile(config, profile_name):
     """
@@ -201,8 +197,11 @@ def _sync_profile(config, profile_name):
 
     completed = 0
     for task in prof.tasks(config, profile_name):
-        if _sync_task(config, profile_name, task['name']):
+        if _sync_task(config, task):
+            log.success('Completed syncing ' + profile_name + '/' + task['name'])
             completed += 1
+        else:
+            log.error('Failed syncing ' + profile_name + '/' + task['name'])
 
     return (completed, len(profile))
 
