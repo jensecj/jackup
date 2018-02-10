@@ -110,6 +110,7 @@ def add(config, profile, task, source, destination, order):
     if not order:
         order = _new_highest_order(tasks)
 
+    orders = [ tasks[t]['order'] for t in tasks ]
     if order in orders:
         log.warning("This order is already used")
         return
