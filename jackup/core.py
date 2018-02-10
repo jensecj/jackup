@@ -95,7 +95,7 @@ def _list_available_profiles(config):
     """
     log.info('Profiles:')
 
-    for profile_name in prof.available_profiles(config):
+    for profile_name in prof.profiles(config):
         profile = prof.read(config, profile_name)
 
         number_of_tasks = len(profile)
@@ -107,13 +107,6 @@ def _list_available_profiles(config):
 
         log.info('* ' + profile_name + ' (' + str(number_of_tasks) + ' ' + task_string + ')')
 
-def _sort_task_ids_by_order(profile):
-    """
-    Returns a list of task ids from PROTILE, sorted by the order in which they will
-    be synchronized.
-    """
-    return sorted(profile, key = lambda task: profile[task]['order'])
-
 def _list_profile(config, profile_name):
     """
     List all tasks in PROFILE, their source, destination, and order.
@@ -123,15 +116,12 @@ def _list_profile(config, profile_name):
         log.warning('That profile does not exist')
         return
 
-    profile = prof.read(config, profile_name)
-    sorted_task_ids = _sort_task_ids_by_order(profile)
-
     table = [ ['task', 'source', 'destination', 'order'] ]
-    for task in sorted_task_ids:
-        table.append([ task,
-                       profile[task]['source'],
-                       profile[task]['destination'],
-                       str(profile[task]['order']) ])
+    for task in prof.tasks(config, profile_name):
+        table.append([ task['name'],
+                       task['source'],
+                       task['destination'],
+                       str(task['order']) ])
 
     tp.print_table(table)
 
@@ -211,11 +201,10 @@ def _sync_profile(config, profile_name):
     Returns a tuple of successful tasks, and total tasks.
     """
     profile = prof.read(config, profile_name)
-    sorted_task_ids = _sort_task_ids_by_order(profile)
 
     completed = 0
-    for task_id in sorted_task_ids:
-        if _sync_task(config, profile_name, task_id):
+    for task in prof.tasks(config, profile_name):
+        if _sync_task(config, profile_name, task['name']):
             completed += 1
 
     return (completed, len(profile))

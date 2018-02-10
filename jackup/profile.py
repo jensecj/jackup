@@ -48,7 +48,7 @@ def path_to_profile_lock(config, profile):
     """
     return os.path.join(config['dir'], profile + '.lock')
 
-def available_profiles(config):
+def profiles(config):
     """
     Get the names of all available profiles on the system.
     This is done by finding all profile-files (files ending in .json) in the
@@ -59,6 +59,22 @@ def available_profiles(config):
                  in os.listdir(config['dir']) # list all files in the jackup directory
                  if profile.endswith('.json') ] # that end with '.json', these are the profiles
     return profiles
+
+def _sort_task_ids_by_order(profile):
+    """
+    Returns a list of task ids from PROTILE, sorted by the order in which they will
+    be synchronized.
+    """
+    return sorted(profile, key = lambda task: profile[task]['order'])
+
+def tasks(config, profile_name):
+    """
+    Returns all tasks in a profile, sorted by order of synchronization
+    """
+    profile = read(config, profile_name)
+    sorted_ids = _sort_task_ids_by_order(profile)
+
+    return [ profile[id] for id in sorted_ids ]
 
 def max_order(profile):
     """
