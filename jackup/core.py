@@ -3,77 +3,9 @@ import json
 import subprocess
 
 import jackup.sysutils as su
+import jackup.profile as prof
 import jackup.logging as log
 import jackup.tableprinter as tp
-
-def _path_to_profile(config, profile):
-    """
-    Returns the path to the profile-file belonging to PROFILE.
-    """
-    return os.path.join(config['dir'], profile + '.json')
-
-def _profile_exists(config, profile):
-    """
-    Returns whether PROFILE exists.
-    Is checked by the existence of the corresponding file in the jackup
-    directory.
-    """
-    path = _path_to_profile(config, profile)
-    return os.path.isfile(path)
-
-def _create_profile(config, profile):
-    """
-    Creates a new empty jackup profile, with the given name.
-    """
-    path = _path_to_profile(config, profile)
-    with open(path, 'w') as profile_db:
-        json.dump({}, profile_db, indent=4)
-
-def _read_profile(config, profile):
-    """
-    Reads the content of the profile-file from disk, and returns it.
-    """
-    profile_file = _path_to_profile(config, profile)
-    with open(profile_file, 'r') as profile_db:
-        tasks = json.load(profile_db)
-
-    return tasks
-
-def _write_profile(config, profile, content):
-    """
-    Writes new content to the profile-file on disk.
-    """
-    profile_file = _path_to_profile(config, profile)
-    with open(profile_file, 'w') as profile_db:
-        json.dump(content, profile_db, indent=4)
-
-def _path_to_profile_lock(config, profile):
-    """
-    Returns the path to the lockfile belonging to PROFILE.
-    """
-    return os.path.join(config['dir'], profile + '.lock')
-
-def _lock_profile(config, profile):
-    """
-    Locks the specified PROFILE, so it can no longer be synchronized.
-    Returns True if profile was locked successfully,
-    returns False if the profile was already locked.
-    """
-    lockfile = _path_to_profile_lock(config, profile)
-
-    if os.path.isfile(lockfile):
-        return False
-
-    open(lockfile, 'w').close()
-    return True
-
-def _unlock_profile(config, profile):
-    """
-    Unlocks the specified PROFILE, so that it can again be synchronized.
-    """
-    lockfile = _path_to_profile_lock(config, profile)
-    if os.path.isfile(lockfile):
-        os.remove(lockfile)
 
 def _new_highest_order(tasks):
     """
@@ -94,11 +26,11 @@ def add(config, profile, task, source, destination, order):
     ORDER is used to determine the order of synchronization, lower values
     get synchronized first.
     """
-    if not _profile_exists(config, profile):
+    if not prof.exists(config, profile):
         log.info('profile does not exist, creating')
-        _create_profile(config, profile)
+        prof.create(config, profile)
 
-    tasks = _read_profile(config, profile)
+    tasks = prof.read(config, profile)
 
     if task in tasks:
         log.warning('This name is already in use')
@@ -117,7 +49,7 @@ def add(config, profile, task, source, destination, order):
 
     tasks[task] = { 'source': source, 'destination': destination, 'order': order }
 
-    _write_profile(config, profile, tasks)
+    prof.write(config, profile, tasks)
 
     log.info("added " + profile + '/' + task)
 
@@ -126,11 +58,11 @@ def edit(config, profile, task, source, destination, order):
     Edit TASK, in PROFILE.
     Allows changing values of a task after creation.
     """
-    if not _profile_exists(config, profile):
+    if not prof.exists(config, profile):
         log.warning('that profile does not exist')
         return
 
-    tasks = _read_profile(config, profile)
+    tasks = prof.read(config, profile)
 
     if not task in tasks:
         log.warning(profile + ' does not have a task named ' + task)
@@ -145,7 +77,7 @@ def edit(config, profile, task, source, destination, order):
     if order:
         tasks[task]['order'] = order
 
-    _write_profile(config, profile, tasks)
+    prof.write(config, profile, tasks)
 
     log.info("edited " + profile + '/' + task)
 
@@ -153,11 +85,11 @@ def remove(config, profile, task):
     """
     Remove an existing task with NAME, from PROFILE.
     """
-    if not _profile_exists(config, profile):
+    if not prof.exists(config, profile):
         log.warning('that profile does not exist')
         return
 
-    tasks = _read_profile(config, profile)
+    tasks = prof.read(config, profile)
 
     if not task in tasks:
         log.warning(profile + ' does not have a task named ' + task)
@@ -165,21 +97,9 @@ def remove(config, profile, task):
 
     tasks.pop(task)
 
-    _write_profile(config, profile, tasks)
+    prof.write(config, profile, tasks)
 
     log.info("removed " + profile + '/' + task)
-
-def _get_available_profiles(config):
-    """
-    Get the names of all available profiles on the system.
-    This is done by finding all profile-files (files ending in .json) in the
-    jackup directory.
-    """
-    profiles = [ profile[:-5] # dont include the last 5 charaters of the filename ('.json')
-                 for profile
-                 in os.listdir(config['dir']) # list all files in the jackup directory
-                 if profile.endswith('.json') ] # that end with '.json', these are the profiles
-    return profiles
 
 def _list_available_profiles(config):
     """
@@ -187,8 +107,8 @@ def _list_available_profiles(config):
     """
     log.info('Profiles:')
 
-    for profile in _get_available_profiles(config):
-        tasks = _read_profile(config, profile)
+    for profile in prof.available_profiles(config):
+        tasks = prof.read(config, profile)
 
         number_of_tasks = len(tasks)
 
@@ -211,11 +131,11 @@ def _list_profile(config, profile):
     List all tasks in PROFILE, their source, destination, and order.
     The listing is sorted by order of synchronization.
     """
-    if not _profile_exists(config, profile):
+    if not prof.exists(config, profile):
         log.warning('that profile does not exist')
         return
 
-    tasks = _read_profile(config, profile)
+    tasks = prof.read(config, profile)
     sorted_task_ids = _sort_task_ids_by_order(tasks)
 
     table = [ ['task', 'source', 'destination', 'order'] ]
@@ -266,7 +186,7 @@ def _read_ignore_file(config, profile, task):
     """
     Reads the .jackupignore file, if any, from a tasks source
     """
-    tasks = _read_profile(config, profile)
+    tasks = prof.read(config, profile)
     folder = os.path.dirname(tasks[task]['source'])
 
     excludes = []
@@ -282,7 +202,7 @@ def _sync_task(config, profile, task):
     """
     Tries to synchronize a task.
     """
-    tasks = _read_profile(config, profile)
+    tasks = prof.read(config, profile)
 
     log.info('syncing ' + task + ": " + tasks[task]['source'] + ' -> ' + tasks[task]['destination'])
 
@@ -302,7 +222,7 @@ def _sync_profile(config, profile):
     Tries to synchronize all tasks in PROFILE.
     Returns a tuple of successful tasks, and total tasks.
     """
-    tasks = _read_profile(config, profile)
+    tasks = prof.read(config, profile)
     sorted_task_ids = _sort_task_ids_by_order(tasks)
 
     completed = 0
@@ -316,11 +236,11 @@ def sync(config, profile):
     """
     Synchronizes all tasks in PROFILE.
     """
-    if not _profile_exists(config, profile):
+    if not prof.exists(config, profile):
         log.error("That profile does not exist.")
         return
 
-    if not _lock_profile(config, profile):
+    if not prof.lock(config, profile):
         log.error("`jackup sync` is already running for " + profile)
         return
 
@@ -343,4 +263,4 @@ def sync(config, profile):
     except KeyboardInterrupt:
         log.warning("\nsyncing interrupted by user.")
     finally:
-        _unlock_profile(config, profile)
+        prof.unlock(config, profile)
