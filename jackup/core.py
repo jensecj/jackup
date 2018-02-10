@@ -160,15 +160,12 @@ def _rsync(config, source, destination, excludes=[]):
     rsync_stderr = str(cmd_rsync.stderr, 'utf-8', 'ignore').strip()
     return rsync_stderr
 
-def _read_ignore_file(config, profile_name, task_name):
+def _read_ignore_file(config, folder):
     """
-    Reads the .jackupignore file, if any, from a tasks source
+    Reads the .jackupignore file, if any, from a folder
     """
-    profile = prof.read(config, profile_name)
-    folder = os.path.dirname(profile[task_name]['source'])
-
     excludes = []
-    ignore_file = os.path.join(folder, '.jackupignore')
+    ignore_file = os.path.join(os.path.dirname(folder), '.jackupignore')
     if os.path.isfile(ignore_file):
         with open(ignore_file, 'r') as ignore_db:
             for line in ignore_db:
@@ -184,7 +181,7 @@ def _sync_task(config, profile_name, task_name):
 
     log.info('Syncing ' + task_name + ": " + profile[task_name]['source'] + ' -> ' + profile[task_name]['destination'])
 
-    excludes = _read_ignore_file(config, profile_name, task_name)
+    excludes = _read_ignore_file(config, profile[task_name]['source'])
     rsync_stderr = _rsync(config, profile[task_name]['source'], profile[task_name]['destination'], excludes)
 
     if rsync_stderr:
