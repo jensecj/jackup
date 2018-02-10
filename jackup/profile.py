@@ -76,6 +76,12 @@ def tasks(config, profile_name):
 
     return [ profile[id] for id in sorted_ids ]
 
+def orders(profile):
+    """
+    Returns a list of all orders in use in PROFILE
+    """
+    return [ profile[task]['order'] for task in profile ]
+
 def max_order(profile):
     """
     Get the highest order of any task in PROFILE
@@ -84,8 +90,7 @@ def max_order(profile):
     if len(profile) == 0:
         return 1
 
-    orders = [ profile[task]['order'] for task in profile ]
-    return max(orders)
+    return max(orders(profile))
 
 def lock(config, profile):
     """

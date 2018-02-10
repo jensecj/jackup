@@ -30,8 +30,7 @@ def add(config, profile_name, task_name, source, destination, order):
     if not order:
         order = prof.max_order(profile) + 1
 
-    orders = [ profile[task]['order'] for task in profile ]
-    if order in orders:
+    if order in prof.orders(profile):
         log.warning("That ordering is already in use")
         return
 
@@ -96,9 +95,7 @@ def _list_available_profiles(config):
     log.info('Profiles:')
 
     for profile_name in prof.profiles(config):
-        profile = prof.read(config, profile_name)
-
-        number_of_tasks = len(profile)
+        number_of_tasks = len(prof.tasks(config, profile_name))
 
         # add plural `s` if the profile has more than one task
         task_string = 'task'
