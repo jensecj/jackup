@@ -35,7 +35,7 @@ def add(config, profile_name, task_name, source, destination, order):
         log.warning("That ordering is already in use")
         return
 
-    profile[task_name] = { 'source': source, 'destination': destination, 'order': order }
+    profile[task_name] = { 'name': task_name, 'source': source, 'destination': destination, 'order': order }
 
     prof.write(config, profile_name, profile)
 
