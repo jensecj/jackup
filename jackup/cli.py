@@ -5,12 +5,11 @@ from pathlib import Path
 
 from jackup.core import add, edit, remove, list, sync
 
-def version(config):
-    print('Jackup version 0.3')
-
 def main():
     # setup the parser for commandline usage
     parser = argparse.ArgumentParser(description="Jackup: Simple synchronization.")
+    parser.add_argument('-v', '--version', action='version', version='%(prog)s v0.3')
+
     subparsers = parser.add_subparsers()
 
     add_parser = subparsers.add_parser("add", help="Add a task to a profile")
@@ -41,9 +40,6 @@ def main():
     sync_parser = subparsers.add_parser("sync", help="Synchronizes a profile")
     sync_parser.add_argument("profile_name", help="Profile with tasks to synchronize")
     sync_parser.set_defaults(func=sync)
-
-    version_parser = subparsers.add_parser("--version", aliases=['-v'], help="Prints Jackups version")
-    version_parser.set_defaults(func=version)
 
     args = parser.parse_args()
 
