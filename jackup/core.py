@@ -26,12 +26,13 @@ def add(config, profile_name, task_name, source, destination, order):
         return
 
     # if we add a new task without an order, place it last in the queue of
-    # tasks to synchronize by giving it the largest order
+    # tasks to synchronize by giving it the latest order
     if not order:
         order = prof.max_order(profile) + 1
 
     if order in prof.orders(profile):
         log.warning("That ordering is already in use")
+        log.info('Use `jackup list <profile>` to check ordering of tasks')
         return
 
     profile[task_name] = { 'name': task_name, 'source': source, 'destination': destination, 'order': order }
