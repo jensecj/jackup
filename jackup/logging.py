@@ -1,6 +1,7 @@
 import sys
+from enum import Enum
 
-class TC:
+class TC(Enum):
     CSI = '\x1B['
     BOLD = CSI + '1m'
     RESET =  CSI + '0m'
@@ -10,7 +11,7 @@ class TC:
     YELLOW = CSI + '33m'
     BLUE = CSI + '34m'
 
-class VERBOSITY:
+class VERBOSITY(Enum):
     ERROR = 0
     QUIET = 1
     WARNING = 2
@@ -18,40 +19,38 @@ class VERBOSITY:
     VERBOSE = 4
     DEBUG = 5
 
-# given a verbosity level, print all messages at, or below that level
-def log(string, verbosity):
+def log(string: str, verbosity: VERBOSITY) -> None:
     if verbosity == VERBOSITY.ERROR:
         print(string, file=sys.stderr)
-        return
+    else:
+        print(string, file=sys.stdout)
 
-    print(string, file=sys.stdout)
-
-def info(string):
+def info(string: str) -> None:
     log(string, VERBOSITY.INFO)
 
-def success(string):
+def success(string: str) -> None:
     log(GREEN(string), VERBOSITY.INFO)
 
-def warning(string):
+def warning(string: str) -> None:
     log(YELLOW(string), VERBOSITY.WARNING)
 
-def error(string):
+def error(string: str) -> None:
     log(RED(string), VERBOSITY.ERROR)
 
-def debug(string):
+def debug(string: str) -> None:
     log(BLUE(string), VERBOSITY.DEBUG)
 
-def RED(string):
-    return TC.BOLD + TC.RED + string + TC.RESET;
+def RED(string: str) -> str:
+    return "%s%s%s%s" % (TC.BOLD, TC.RED, string, TC.RESET)
 
-def YELLOW(string):
-    return TC.BOLD + TC.YELLOW + string + TC.RESET;
+def YELLOW(string: str) -> str:
+    return "%s%s%s%s" % (TC.BOLD, TC.YELLOW, string, TC.RESET)
 
-def GREEN(string):
-    return TC.BOLD + TC.GREEN + string + TC.RESET;
+def GREEN(string: str) -> str:
+    return "%s%s%s%s" % (TC.BOLD, TC.GREEN, string, TC.RESET)
 
-def BLUE(string):
-    return TC.BOLD + TC.BLUE + string + TC.RESET;
+def BLUE(string: str) -> str:
+    return "%s%s%s%s" % (TC.BOLD, TC.BLUE, string, TC.RESET)
 
-def BOLD(string):
-    return TC.BOLD + string + TC.RESET;
+def BOLD(string: str) -> str:
+    return "%s%s%s" % (TC.BOLD, string, TC.RESET)
