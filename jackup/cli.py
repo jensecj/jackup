@@ -1,14 +1,15 @@
 import os
 import sys
 import argparse
+import pkg_resources
 from pathlib import Path
 
 from jackup.core import add, edit, remove, list, sync
 
 def main():
-    # setup the parser for commandline usage
-    parser = argparse.ArgumentParser(description="Jackup: Simple synchronization.")
-    parser.add_argument('-v', '--version', action='version', version='%(prog)s v0.3')
+    semver = pkg_resources.require("jackup")[0].version
+    parser = argparse.ArgumentParser(description="Jackup: Simple Synchronization.")
+    parser.add_argument('-v', '--version', action='version', version="%(prog)s " + semver)
 
     subparsers = parser.add_subparsers()
 
