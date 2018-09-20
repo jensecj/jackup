@@ -1,54 +1,55 @@
 import os
 import json
+from typing import List
 
-def path_to_profile(config, profile):
+def path_to_profile(config, profile_name: str) -> str:
     """
-    Returns the path to the profile-file belonging to PROFILE.
+    Returns the path to the file belonging to PROFILE.
     """
-    return os.path.join(config['dir'], profile + '.json')
+    return os.path.join(config['dir'], profile_name + '.json')
 
-def exists(config, profile):
+def exists(config, profile_name: str) -> bool:
     """
     Returns whether PROFILE exists.
     Is checked by the existence of the corresponding file in the jackup
     directory.
     """
-    path = path_to_profile(config, profile)
+    path = path_to_profile(config, profile_name)
     return os.path.isfile(path)
 
-def create(config, profile):
+def create(config, profile_name: str) -> None:
     """
-    Creates a new empty jackup profile, with the given name.
+    Creates a new empty PROFILE, with the given name.
     """
-    path = path_to_profile(config, profile)
+    path = path_to_profile(config, profile_name)
     with open(path, 'w') as profile_db:
         json.dump({}, profile_db, indent=4)
 
-def read(config, profile):
+def read(config, profile_name: str):
     """
     Reads the content of the profile-file from disk, and returns it.
     """
-    profile_file = path_to_profile(config, profile)
+    profile_file = path_to_profile(config, profile_name)
     with open(profile_file, 'r') as profile_db:
         tasks = json.load(profile_db)
 
     return tasks
 
-def write(config, profile, content):
+def write(config, profile_name: str, content) -> None:
     """
     Writes new content to the profile-file on disk.
     """
-    profile_file = path_to_profile(config, profile)
+    profile_file = path_to_profile(config, profile_name)
     with open(profile_file, 'w') as profile_db:
         json.dump(content, profile_db, indent=4)
 
-def path_to_profile_lock(config, profile):
+def path_to_profile_lock(config, profile_name: str) -> str:
     """
     Returns the path to the lockfile belonging to PROFILE.
     """
-    return os.path.join(config['dir'], profile + '.lock')
+    return os.path.join(config['dir'], profile_name + '.lock')
 
-def profiles(config):
+def profiles(config) -> List[str]:
     """
     Get the names of all available profiles on the system.
     This is done by finding all profile-files (files ending in .json) in the
@@ -60,14 +61,14 @@ def profiles(config):
                  if profile.endswith('.json') ] # that end with '.json', these are the profiles
     return profiles
 
-def _sort_task_ids_by_order(profile):
+def _sort_task_ids_by_order(tasks):
     """
-    Returns a list of task ids from PROTILE, sorted by the order in which they will
+    Returns a list of task ids from TASKS, sorted by the order in which they will
     be synchronized.
     """
-    return sorted(profile, key = lambda task: profile[task]['order'])
+    return sorted(tasks, key = lambda task: tasks[task]['order'])
 
-def tasks(config, profile_name):
+def tasks(config, profile_name: str):
     """
     Returns all tasks in a profile, sorted by order of synchronization
     """
@@ -76,40 +77,40 @@ def tasks(config, profile_name):
 
     return [ profile[id] for id in sorted_ids ]
 
-def orders(profile):
+def orders(tasks) -> List[int]:
     """
     Returns a list of all orders in use in PROFILE
     """
-    return [ profile[task]['order'] for task in profile ]
+    return [ tasks[task]['order'] for task in tasks ]
 
-def max_order(profile):
+def max_order(tasks) -> int:
     """
-    Get the highest order of any task in PROFILE
+    Get the highest order of any task in TASKS
     """
-    # if there are no tasks in the profile, the new ordering starts at 1.
-    if len(profile) == 0:
+    # if there are no tasks in the tasks, the new ordering starts at 1.
+    if len(tasks) == 0:
         return 1
 
-    return max(orders(profile))
+    return max(orders(tasks))
 
-def lock(config, profile):
+def lock(config, profile_name) -> bool:
     """
     Locks the specified PROFILE, so it can no longer be synchronized.
     Returns True if profile was locked successfully,
     returns False if the profile was already locked.
     """
-    lockfile = path_to_profile_lock(config, profile)
+    lockfile = path_to_profile_lock(config, profile_name)
 
     if os.path.isfile(lockfile):
         return False
+    else:
+        open(lockfile, 'w').close()
+        return True
 
-    open(lockfile, 'w').close()
-    return True
-
-def unlock(config, profile):
+def unlock(config, profile_name) -> None:
     """
     Unlocks the specified PROFILE, so that it can again be synchronized.
     """
-    lockfile = path_to_profile_lock(config, profile)
+    lockfile = path_to_profile_lock(config, profile_name)
     if os.path.isfile(lockfile):
         os.remove(lockfile)
