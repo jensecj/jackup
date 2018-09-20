@@ -189,8 +189,7 @@ def _sync_profile(config, profile_name):
     Tries to synchronize all tasks in PROFILE.
     Returns a tuple of successful tasks, and total tasks.
     """
-    profile = prof.read(config, profile_name)
-
+    num_tasks = len(prof.read(config, profile_name))
     completed = 0
     for task in prof.tasks(config, profile_name):
         if _sync_task(config, task):
@@ -199,7 +198,7 @@ def _sync_profile(config, profile_name):
         else:
             log.error('Failed syncing ' + profile_name + '/' + task['name'])
 
-    return (completed, len(profile))
+    return (completed, num_tasks)
 
 def sync(config, profile_name):
     """
@@ -230,6 +229,6 @@ def sync(config, profile_name):
         log.info('Synchronized ' + task_ratio + " tasks")
         log.info('Completed syncing ' + profile_name)
     except KeyboardInterrupt:
-        log.warning("\nSynchronization interrupted by user")
+        log.warning("Synchronization interrupted by user")
     finally:
         prof.unlock(config, profile_name)

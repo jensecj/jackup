@@ -41,16 +41,16 @@ def debug(string: str) -> None:
     log(BLUE(string), VERBOSITY.DEBUG)
 
 def RED(string: str) -> str:
-    return "%s%s%s%s" % (TC.BOLD, TC.RED, string, TC.RESET)
+    return "%s%s%s%s" % (TC.BOLD.value, TC.RED.value, string, TC.RESET.value)
 
 def YELLOW(string: str) -> str:
-    return "%s%s%s%s" % (TC.BOLD, TC.YELLOW, string, TC.RESET)
+    return "%s%s%s%s" % (TC.BOLD.value, TC.YELLOW.value, string, TC.RESET.value)
 
 def GREEN(string: str) -> str:
-    return "%s%s%s%s" % (TC.BOLD, TC.GREEN, string, TC.RESET)
+    return "%s%s%s%s" % (TC.BOLD.value, TC.GREEN.value, string, TC.RESET.value)
 
 def BLUE(string: str) -> str:
-    return "%s%s%s%s" % (TC.BOLD, TC.BLUE, string, TC.RESET)
+    return "%s%s%s%s" % (TC.BOLD.value, TC.BLUE.value, string, TC.RESET.value)
 
 def BOLD(string: str) -> str:
-    return "%s%s%s" % (TC.BOLD, string, TC.RESET)
+    return "%s%s%s" % (TC.BOLD.value, string, TC.RESET.value)
