@@ -14,6 +14,6 @@ setup(name='jackup',
       author_email='jensecj@gmail.com',
       packages=['jackup'],
       entry_points = {
-          'console_scripts': ['jackup=jackup.cli:main'],
+          'console_scripts': ['jackup = jackup.cli:main'],
       },
       zip_safe=False)

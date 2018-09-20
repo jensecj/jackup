@@ -44,7 +44,7 @@ def main():
 
     args = parser.parse_args()
 
-    # we were run without any arguments, print usage and exit
+    # print usage if run without arguments
     if not len(sys.argv) > 1:
         parser.print_help()
         return
