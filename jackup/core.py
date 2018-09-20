@@ -93,17 +93,13 @@ def _list_available_profiles(config):
     """
     List all available profiles on the system.
     """
-    log.info('Profiles:')
-
+    profiles = []
     for profile_name in prof.profiles(config):
         number_of_tasks = len(prof.tasks(config, profile_name))
 
-        # add plural `s` if the profile has more than one task
-        task_string = 'task'
-        if number_of_tasks > 1:
-            task_string += 's'
+        profiles.append((profile_name, str(number_of_tasks)))
 
-        log.info('* ' + profile_name + ' (' + str(number_of_tasks) + ' ' + task_string + ')')
+    return profiles
 
 def _list_profile(config, profile_name):
     """
@@ -121,7 +117,7 @@ def _list_profile(config, profile_name):
                        task['destination'],
                        str(task['order']) ])
 
-    tp.print_table(table)
+    return table
 
 def list(config, profile_name):
     """
@@ -129,9 +125,11 @@ def list(config, profile_name):
     available profiles on the system.
     """
     if profile_name:
-        _list_profile(config, profile_name)
+        tp.print_table(_list_profile(config, profile_name))
     else:
-        _list_available_profiles(config)
+        log.info('Profiles:')
+        for profile in _list_available_profiles(config):
+            print("* %s [%s]" % profile)
 
 def _rsync(config, source, destination, excludes=[]):
     """
