@@ -146,8 +146,8 @@ def _rsync(config, source, destination, excludes=[]):
                   # '--checksum',
                   # '--quiet',
                   '--verbose',
-                  # '--dry-run',
-                  '--delete'
+                  # '--dry-run'
+                  # '--delete'
     ]
 
     for ex in excludes:
