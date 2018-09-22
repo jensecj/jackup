@@ -1,16 +1,19 @@
 import os
 import subprocess
+from typing import Tuple
 
-def ssh_can_connect(host, port):
+
+# TODO: Convert to pure python instead of relying on UNIX tools.
+
+def ssh_can_connect(host: str, port: str) -> int:
     """
-    Returns whether we can connect to a host through ssh.
+    Returns c-style error codes, whether we can connect to a host through ssh.
+    0: No error
     """
     cmd_ssh = subprocess.run(['ssh', '-p', port, host, 'exit 0'])
-
-    # 0 means no errors, c-style.
     return not cmd_ssh.returncode
 
-def mountpoint_from_uuid(uuid):
+def mountpoint_from_uuid(uuid: str) -> str:
     """
     Returns the path where a device with UUID is mounted.
     If the device is not mounted, then return the empty string.
@@ -29,7 +32,7 @@ def mountpoint_from_uuid(uuid):
 
 
 
-def uuid_relpath_pair_from_path(path):
+def uuid_relpath_pair_from_path(path: str) -> Tuple[str, str]:
     """
     Generates a (UUID, relative path) pair from a path on the file system.
     This is done by figuring out which device the path belongs to, and then
@@ -58,7 +61,7 @@ def uuid_relpath_pair_from_path(path):
 
 
 
-def path_from_uuid_relpath(uuid, relpath):
+def path_from_uuid_relpath(uuid: str, relpath: str) -> str:
     """
     Reifies a filesystem path from a (UUID, relative path) pair.
     This is done by finding the mountpoint of the device belonging to the UUID, then
