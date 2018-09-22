@@ -1,12 +1,13 @@
 import os
 import json
 import subprocess
+from typing import List, Tuple
 
 import jackup.profile as prof
 import jackup.logging as log
 import jackup.tableprinter as tp
 
-def add(config, profile_name, task_name, source, destination, order):
+def add(config, profile_name: str, task_name: str, source: str, destination: str, order: int) -> None:
     """
     Add a new task with NAME, to PROFILE.
     SOURCE/DESTINATION can be either local files/folders, or remote locations,
@@ -41,7 +42,7 @@ def add(config, profile_name, task_name, source, destination, order):
 
     log.info("added " + profile_name + '/' + task_name)
 
-def edit(config, profile_name, task_name, source, destination, order):
+def edit(config, profile_name: str, task_name: str, source: str, destination: str, order: int) -> None:
     """
     Edit TASK, in PROFILE.
     Allows changing values of a task after creation.
@@ -69,7 +70,7 @@ def edit(config, profile_name, task_name, source, destination, order):
 
     log.info("edited " + profile_name + '/' + task_name)
 
-def remove(config, profile_name, task_name):
+def remove(config, profile_name: str, task_name: str) -> None:
     """
     Remove an existing task with NAME, from PROFILE.
     """
@@ -89,7 +90,7 @@ def remove(config, profile_name, task_name):
 
     log.info("Removed " + profile_name + '/' + task_name)
 
-def _list_available_profiles(config):
+def _list_available_profiles(config) -> List[Tuple[str, str]]:
     """
     List all available profiles on the system.
     """
@@ -101,7 +102,7 @@ def _list_available_profiles(config):
 
     return profiles
 
-def _list_profile(config, profile_name):
+def _list_profile(config, profile_name: str):
     """
     List all tasks in PROFILE, their source, destination, and order.
     The listing is sorted by order of synchronization.
@@ -119,7 +120,7 @@ def _list_profile(config, profile_name):
 
     return table
 
-def list(config, profile_name):
+def list(config, profile_name: str) -> None:
     """
     If given a PROFILE, list all tasks in that profile, otherwise list all
     available profiles on the system.
@@ -131,7 +132,7 @@ def list(config, profile_name):
         for profile in _list_available_profiles(config):
             print("* %s [%s]" % profile)
 
-def _rsync(config, source, destination, excludes=[]):
+def _rsync(config, source: str, destination: str, excludes=[]) -> str:
     """
     Wrapper for =rsync=, handles syncing SOURCE to DESTINATION.
     """
@@ -156,7 +157,7 @@ def _rsync(config, source, destination, excludes=[]):
     rsync_stderr = str(cmd_rsync.stderr, 'utf-8', 'ignore').strip()
     return rsync_stderr
 
-def _read_ignore_file(config, folder):
+def _read_ignore_file(config, folder: str) -> List[str]:
     """
     Reads the .jackupignore file, if any, from a folder
     """
@@ -169,7 +170,7 @@ def _read_ignore_file(config, folder):
 
     return excludes
 
-def _sync_task(config, task):
+def _sync_task(config, task) -> bool:
     """
     Tries to synchronize a task.
     """
@@ -184,7 +185,7 @@ def _sync_task(config, task):
     else:
         return True
 
-def _sync_profile(config, profile_name):
+def _sync_profile(config, profile_name: str) -> Tuple[int, int]:
     """
     Tries to synchronize all tasks in PROFILE.
     Returns a tuple of successful tasks, and total tasks.
@@ -200,7 +201,7 @@ def _sync_profile(config, profile_name):
 
     return (completed, num_tasks)
 
-def sync(config, profile_name):
+def sync(config, profile_name: str) -> None:
     """
     Synchronizes all tasks in PROFILE.
     """
