@@ -1,6 +1,7 @@
 import os
 import json
 import subprocess
+from datetime import datetime
 from typing import List, Tuple
 
 import jackup.profile as prof
@@ -214,6 +215,8 @@ def sync(config, profile_name: str) -> None:
         return
 
     try:
+        start_time = datetime.now()
+        log.info("Starting sync at " + str(start_time))
         (completed_tasks, total_tasks) = _sync_profile(config, profile_name)
 
         # report ratio of sucessful tasks to the total number of tasks,
@@ -227,8 +230,11 @@ def sync(config, profile_name: str) -> None:
         else:
             task_ratio = log.GREEN(task_ratio)
 
+        end_time = datetime.now()
+
         log.info('Synchronized ' + task_ratio + " tasks")
         log.info('Completed syncing ' + profile_name)
+        log.info("Synching ended at " + str(end_time) + ", took " + str(end_time - start_time))
     except KeyboardInterrupt:
         log.warning("\nSynchronization interrupted by user")
     finally:
