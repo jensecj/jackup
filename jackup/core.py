@@ -230,6 +230,6 @@ def sync(config, profile_name: str) -> None:
         log.info('Synchronized ' + task_ratio + " tasks")
         log.info('Completed syncing ' + profile_name)
     except KeyboardInterrupt:
-        log.warning("Synchronization interrupted by user")
+        log.warning("\nSynchronization interrupted by user")
     finally:
         prof.unlock(config, profile_name)
