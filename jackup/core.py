@@ -1,13 +1,45 @@
 import os
 import json
 import subprocess
+
 from datetime import datetime
 from typing import List, Tuple
+
+from jackup.profile import Profile
+from jackup.task import Task
+from jackup.config import Config
 
 import jackup.profile as prof
 import jackup.logging as log
 import jackup.tableprinter as tp
-from jackup.config import Config
+
+def _add(config: Config, profile_name, task: Task) -> None:
+    if not prof.exists(config, profile_name):
+        log.info('Profile does not exist, creating...')
+        prof.create(config, profile_name)
+
+    profile = prof.read(config, profile_name)
+
+    if task.name in profile:
+        log.warning('That task already exists')
+        log.info('Use `jackup edit <profile> <name>` to change settings for this task')
+        return
+
+    # if we add a new task without an order, place it last in the queue of
+    # tasks to synchronize by giving it the latest order
+    if not task.order:
+        order = prof.max_order(profile) + 1
+
+    if task.order in prof.orders(profile):
+        log.warning("That ordering is already in use")
+        log.info('Use `jackup list <profile>` to check ordering of tasks')
+        return
+
+    profile[task.name] = { 'name': task.name, 'source': task.source, 'destination': task.destination, 'order': task.order }
+
+    prof.write(config, profile_name, profile)
+
+    log.info("added " + profile_name + '/' + task.name)
 
 def add(config: Config, profile_name: str, task_name: str, source: str, destination: str, order: int) -> None:
     """
@@ -17,32 +49,10 @@ def add(config: Config, profile_name: str, task_name: str, source: str, destinat
     ORDER is used to determine the order of synchronization, lower values
     get synchronized first.
     """
-    if not prof.exists(config, profile_name):
-        log.info('Profile does not exist, creating...')
-        prof.create(config, profile_name)
+    task = Task(task_name, source, destination, order)
 
-    profile = prof.read(config, profile_name)
-
-    if task_name in profile:
-        log.warning('That task already exists')
-        log.info('Use `jackup edit <profile> <name>` to change settings for this task')
-        return
-
-    # if we add a new task without an order, place it last in the queue of
-    # tasks to synchronize by giving it the latest order
-    if not order:
-        order = prof.max_order(profile) + 1
-
-    if order in prof.orders(profile):
-        log.warning("That ordering is already in use")
-        log.info('Use `jackup list <profile>` to check ordering of tasks')
-        return
-
-    profile[task_name] = { 'name': task_name, 'source': source, 'destination': destination, 'order': order }
-
-    prof.write(config, profile_name, profile)
-
-    log.info("added " + profile_name + '/' + task_name)
+    # TODO: extract profile from profile_name, and pass to _add
+    _add(config, profile_name, task)
 
 def edit(config: Config, profile_name: str, task_name: str, source: str, destination: str, order: int) -> None:
     """
