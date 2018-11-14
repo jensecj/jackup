@@ -124,5 +124,5 @@ Clone the repo and run `pip install . && pip install -r requirements.txt`.
 Remember to install the prerequisites:
 
 (these are not strict requirements, they're just the only ones I've tested)
-* Python >= 3.6
+* Python >= 3.7
 * rsync >= 3.1.2
