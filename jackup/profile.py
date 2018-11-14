@@ -109,24 +109,24 @@ def max_order(tasks) -> int:
 
     return max(orders(tasks))
 
-def lock(config: Config, profile_name) -> bool:
+def lock(config: Config, profile_name: str) -> bool:
     """
     Locks the specified PROFILE, so it can no longer be synchronized.
     Returns True if profile was locked successfully,
     returns False if the profile was already locked.
     """
-    lockfile = path_to_profile_lock(config, profile_name)
+    lockfile_path = path_to_profile_lock(config, profile_name)
 
-    if os.path.isfile(lockfile):
-        return False
-    else:
-        open(lockfile, 'w').close()
-        return True
+    if os.path.isfile(lockfile_path):
+            return False
 
-def unlock(config: Config, profile_name) -> None:
+    open(lockfile_path, 'w').close()
+    return True
+
+def unlock(config: Config, profile_name: str) -> None:
     """
     Unlocks the specified PROFILE, so that it can again be synchronized.
     """
-    lockfile = path_to_profile_lock(config, profile_name)
-    if os.path.isfile(lockfile):
-        os.remove(lockfile)
+    lockfile_path = path_to_profile_lock(config, profile_name)
+    if os.path.isfile(lockfile_path):
+        os.remove(lockfile_path)
