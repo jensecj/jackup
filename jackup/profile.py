@@ -4,6 +4,9 @@ import json
 from typing import List
 from dataclasses import dataclass
 
+import jackup.logging as log
+import jackup.task as T
+
 from jackup.config import Config
 from jackup.task import Task
 
@@ -11,6 +14,12 @@ from jackup.task import Task
 class Profile:
     name: str
     tasks: List[Task]
+
+def toJSON(profile: Profile):
+    return [ T.toJSON(task) for task in profile.tasks ]
+
+def fromJSON(tasks) -> List[Task]:
+    return [ T.fromJSON(task) for task in tasks ]
 
 def add(profile: Profile, task: Task) -> Profile:
     "Adds a TASK to a PROFILE."
