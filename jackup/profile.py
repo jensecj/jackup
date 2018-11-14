@@ -1,8 +1,22 @@
 import os
 import json
+
 from typing import List
+from dataclasses import dataclass
 
 from jackup.config import Config
+from jackup.task import Task
+
+@dataclass
+class Profile:
+    tasks: List[Task]
+
+def add(profile: Profile, task: Task) -> Profile:
+    "Adds a TASK to a PROFILE."
+    tasks = profile.tasks
+    tasks.append(task)
+    new_profile = Profile(tasks)
+    return new_profile
 
 def path_to_profile(config: Config, profile_name: str) -> str:
     """
