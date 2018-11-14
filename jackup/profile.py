@@ -9,13 +9,14 @@ from jackup.task import Task
 
 @dataclass
 class Profile:
+    name: str
     tasks: List[Task]
 
 def add(profile: Profile, task: Task) -> Profile:
     "Adds a TASK to a PROFILE."
-    tasks = profile.tasks
-    tasks.append(task)
-    new_profile = Profile(tasks)
+    new_tasks = profile.tasks
+    new_tasks.append(task)
+    new_profile = Profile(profile.name, new_tasks)
     return new_profile
 
 def path_to_profile(config: Config, profile_name: str) -> str:
