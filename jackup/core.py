@@ -19,8 +19,9 @@ def _add(config: Config, profile_name, task: Task) -> None:
         prof.create(config, profile_name)
 
     profile = prof.read(config, profile_name)
+    profile = prof.get_profile_by_name(config, profile_name)
 
-    if task.name in profile:
+    if task.name in [ t.name for t in profile.tasks ]:
         log.warning('That task already exists')
         log.info('Use `jackup edit <profile> <name>` to change settings for this task')
         return
@@ -30,16 +31,17 @@ def _add(config: Config, profile_name, task: Task) -> None:
     if not task.order:
         order = prof.max_order(profile) + 1
 
-    if task.order in prof.orders(profile):
+    if task.order in prof.orders(profile.tasks):
         log.warning("That ordering is already in use")
         log.info('Use `jackup list <profile>` to check ordering of tasks')
         return
 
-    profile[task.name] = { 'name': task.name, 'source': task.source, 'destination': task.destination, 'order': task.order }
+    new_profile = prof.add(profile, task)
 
-    prof.write(config, profile_name, profile)
+    # profile.tasks[task.name] = { 'name': task.name, 'source': task.source, 'destination': task.destination, 'order': task.order }
+    prof.write(config, profile.name, prof.toJSON(new_profile))
 
-    log.info("added " + profile_name + '/' + task.name)
+    log.info("added " + profile.name + '/' + task.name)
 
 def add(config: Config, profile_name: str, task_name: str, source: str, destination: str, order: int) -> None:
     """
