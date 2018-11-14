@@ -127,10 +127,10 @@ def _list_profile(config: Config, profile_name: str):
 
     table = [ ['task', 'source', 'destination', 'order'] ]
     for task in prof.tasks(config, profile_name):
-        table.append([ task['name'],
-                       task['source'],
-                       task['destination'],
-                       str(task['order']) ])
+        table.append([ task.name,
+                       task.source,
+                       task.destination,
+                       str(task.order) ])
 
     return table
 
