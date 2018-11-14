@@ -2,13 +2,15 @@ import os
 import json
 from typing import List
 
-def path_to_profile(config, profile_name: str) -> str:
+from jackup.config import Config
+
+def path_to_profile(config: Config, profile_name: str) -> str:
     """
     Returns the path to the file belonging to PROFILE.
     """
-    return os.path.join(config['dir'], profile_name + '.json')
+    return os.path.join(config.jackup_path, profile_name + '.json')
 
-def exists(config, profile_name: str) -> bool:
+def exists(config: Config, profile_name: str) -> bool:
     """
     Returns whether PROFILE exists.
     Is checked by the existence of the corresponding file in the jackup
@@ -17,7 +19,7 @@ def exists(config, profile_name: str) -> bool:
     path = path_to_profile(config, profile_name)
     return os.path.isfile(path)
 
-def create(config, profile_name: str) -> None:
+def create(config: Config, profile_name: str) -> None:
     """
     Creates a new empty PROFILE, with the given name.
     """
@@ -25,7 +27,7 @@ def create(config, profile_name: str) -> None:
     with open(path, 'w') as profile_db:
         json.dump({}, profile_db, indent=4)
 
-def read(config, profile_name: str):
+def read(config: Config, profile_name: str):
     """
     Reads the content of the profile-file from disk, and returns it.
     """
@@ -35,7 +37,7 @@ def read(config, profile_name: str):
 
     return tasks
 
-def write(config, profile_name: str, content) -> None:
+def write(config: Config, profile_name: str, content) -> None:
     """
     Writes new content to the profile-file on disk.
     """
@@ -43,13 +45,13 @@ def write(config, profile_name: str, content) -> None:
     with open(profile_file, 'w') as profile_db:
         json.dump(content, profile_db, indent=4)
 
-def path_to_profile_lock(config, profile_name: str) -> str:
+def path_to_profile_lock(config: Config, profile_name: str) -> str:
     """
     Returns the path to the lockfile belonging to PROFILE.
     """
-    return os.path.join(config['dir'], profile_name + '.lock')
+    return os.path.join(config.jackup_path, profile_name + '.lock')
 
-def profiles(config) -> List[str]:
+def profiles(config: Config) -> List[str]:
     """
     Get the names of all available profiles on the system.
     This is done by finding all profile-files (files ending in .json) in the
@@ -57,7 +59,7 @@ def profiles(config) -> List[str]:
     """
     profiles = [ profile[:-5] # dont include the last 5 charaters of the filename ('.json')
                  for profile
-                 in os.listdir(config['dir']) # list all files in the jackup directory
+                 in os.listdir(config.jackup_path) # list all files in the jackup directory
                  if profile.endswith('.json') ] # that end with '.json', these are the profiles
     return profiles
 
@@ -68,7 +70,7 @@ def _sort_task_ids_by_order(tasks):
     """
     return sorted(tasks, key = lambda task: tasks[task]['order'])
 
-def tasks(config, profile_name: str):
+def tasks(config: Config, profile_name: str):
     """
     Returns all tasks in a profile, sorted by order of synchronization
     """
@@ -93,7 +95,7 @@ def max_order(tasks) -> int:
 
     return max(orders(tasks))
 
-def lock(config, profile_name) -> bool:
+def lock(config: Config, profile_name) -> bool:
     """
     Locks the specified PROFILE, so it can no longer be synchronized.
     Returns True if profile was locked successfully,
@@ -107,7 +109,7 @@ def lock(config, profile_name) -> bool:
         open(lockfile, 'w').close()
         return True
 
-def unlock(config, profile_name) -> None:
+def unlock(config: Config, profile_name) -> None:
     """
     Unlocks the specified PROFILE, so that it can again be synchronized.
     """

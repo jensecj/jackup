@@ -5,6 +5,7 @@ import pkg_resources
 from pathlib import Path
 
 from jackup.core import add, edit, remove, list, sync
+from jackup.config import Config
 
 def main():
     semver = pkg_resources.require("jackup")[0].version
@@ -56,10 +57,7 @@ def main():
     if not os.path.isdir(jackup_dir):
         os.mkdir(jackup_dir)
 
-    config = {
-        'dir': jackup_dir,
-        'log': jackup_log,
-    }
+    config = Config(jackup_path=jackup_dir, log_path=jackup_log)
 
     # delegate to relevant functions based on parsed args
     args = vars(args)

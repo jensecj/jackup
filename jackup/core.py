@@ -7,8 +7,9 @@ from typing import List, Tuple
 import jackup.profile as prof
 import jackup.logging as log
 import jackup.tableprinter as tp
+from jackup.config import Config
 
-def add(config, profile_name: str, task_name: str, source: str, destination: str, order: int) -> None:
+def add(config: Config, profile_name: str, task_name: str, source: str, destination: str, order: int) -> None:
     """
     Add a new task with NAME, to PROFILE.
     SOURCE/DESTINATION can be either local files/folders, or remote locations,
@@ -43,7 +44,7 @@ def add(config, profile_name: str, task_name: str, source: str, destination: str
 
     log.info("added " + profile_name + '/' + task_name)
 
-def edit(config, profile_name: str, task_name: str, source: str, destination: str, order: int) -> None:
+def edit(config: Config, profile_name: str, task_name: str, source: str, destination: str, order: int) -> None:
     """
     Edit TASK, in PROFILE.
     Allows changing values of a task after creation.
@@ -71,7 +72,7 @@ def edit(config, profile_name: str, task_name: str, source: str, destination: st
 
     log.info("edited " + profile_name + '/' + task_name)
 
-def remove(config, profile_name: str, task_name: str) -> None:
+def remove(config: Config, profile_name: str, task_name: str) -> None:
     """
     Remove an existing task with NAME, from PROFILE.
     """
@@ -91,7 +92,7 @@ def remove(config, profile_name: str, task_name: str) -> None:
 
     log.info("Removed " + profile_name + '/' + task_name)
 
-def _list_available_profiles(config) -> List[Tuple[str, str]]:
+def _list_available_profiles(config: Config) -> List[Tuple[str, str]]:
     """
     List all available profiles on the system.
     """
@@ -103,7 +104,7 @@ def _list_available_profiles(config) -> List[Tuple[str, str]]:
 
     return profiles
 
-def _list_profile(config, profile_name: str):
+def _list_profile(config: Config, profile_name: str):
     """
     List all tasks in PROFILE, their source, destination, and order.
     The listing is sorted by order of synchronization.
@@ -121,7 +122,7 @@ def _list_profile(config, profile_name: str):
 
     return table
 
-def list(config, profile_name: str) -> None:
+def list(config: Config, profile_name: str) -> None:
     """
     If given a PROFILE, list all tasks in that profile, otherwise list all
     available profiles on the system.
@@ -133,11 +134,12 @@ def list(config, profile_name: str) -> None:
         for profile in _list_available_profiles(config):
             print("* %s [%s]" % profile)
 
-def _rsync(config, source: str, destination: str, excludes=[]) -> str:
+# TODO: maybe use rclone instead of rsync?
+def _rsync(config: Config, source: str, destination: str, excludes=[]) -> str:
     """
     Wrapper for =rsync=, handles syncing SOURCE to DESTINATION.
     """
-    rsync_args = ['--log-file=' + config['log'],
+    rsync_args = ['--log-file=' + config.log_path,
                   '--partial', '--progress', '--archive',
                   '--recursive', '--human-readable',
                   #'--timeout=30',
@@ -158,7 +160,7 @@ def _rsync(config, source: str, destination: str, excludes=[]) -> str:
     rsync_stderr = str(cmd_rsync.stderr, 'utf-8', 'ignore').strip()
     return rsync_stderr
 
-def _read_ignore_file(config, folder: str) -> List[str]:
+def _read_ignore_file(config: Config, folder: str) -> List[str]:
     """
     Reads the .jackupignore file, if any, from a folder
     """
@@ -171,7 +173,7 @@ def _read_ignore_file(config, folder: str) -> List[str]:
 
     return excludes
 
-def _sync_task(config, task) -> bool:
+def _sync_task(config: Config, task) -> bool:
     """
     Tries to synchronize a task.
     """
@@ -186,7 +188,7 @@ def _sync_task(config, task) -> bool:
     else:
         return True
 
-def _sync_profile(config, profile_name: str) -> Tuple[int, int]:
+def _sync_profile(config: Config, profile_name: str) -> Tuple[int, int]:
     """
     Tries to synchronize all tasks in PROFILE.
     Returns a tuple of successful tasks, and total tasks.
@@ -202,7 +204,7 @@ def _sync_profile(config, profile_name: str) -> Tuple[int, int]:
 
     return (completed, num_tasks)
 
-def sync(config, profile_name: str) -> None:
+def sync(config: Config, profile_name: str) -> None:
     """
     Synchronizes all tasks in PROFILE.
     """
