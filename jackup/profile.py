@@ -59,7 +59,7 @@ def read(config: Config, profile_name: str):
     with open(profile_file, 'r') as profile_db:
         tasks = json.load(profile_db)
 
-    return tasks
+    return fromJSON(tasks)
 
 def write(config: Config, profile_name: str, content) -> None:
     """
@@ -87,27 +87,18 @@ def profiles(config: Config) -> List[str]:
                  if profile.endswith('.json') ] # that end with '.json', these are the profiles
     return profiles
 
-def _sort_task_ids_by_order(tasks):
-    """
-    Returns a list of task ids from TASKS, sorted by the order in which they will
-    be synchronized.
-    """
-    return sorted(tasks, key = lambda task: tasks[task]['order'])
-
 def tasks(config: Config, profile_name: str):
     """
     Returns all tasks in a profile, sorted by order of synchronization
     """
-    profile = read(config, profile_name)
-    sorted_ids = _sort_task_ids_by_order(profile)
-
-    return [ profile[id] for id in sorted_ids ]
+    tasks = read(config, profile_name)
+    return sorted(tasks, key = lambda task: task.order)
 
 def orders(tasks) -> List[int]:
     """
     Returns a list of all orders in use in PROFILE
     """
-    return [ tasks[task]['order'] for task in tasks ]
+    return [ task.order for task in tasks ]
 
 def max_order(tasks) -> int:
     """
