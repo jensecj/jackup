@@ -28,6 +28,19 @@ def add(profile: Profile, task: Task) -> Profile:
     new_profile = Profile(profile.name, new_tasks)
     return new_profile
 
+def get_profile_by_name(config: Config, profile_name: str) -> Profile:
+    """
+    If a profile with PROFILE_NAME exists, it is returned, otherwise it is
+    created.
+    """
+    if not exists(config, profile_name):
+        log.info('Profile does not exist, creating...')
+        create(config, profile_name)
+
+    tasks = read(config, profile_name)
+
+    return Profile(profile_name, tasks)
+
 def path_to_profile(config: Config, profile_name: str) -> str:
     """
     Returns the path to the file belonging to PROFILE.
