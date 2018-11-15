@@ -19,22 +19,20 @@ def _add(config: Config, profile: Profile, task: Task) -> Optional[Profile]:
         log.info('Use `jackup edit <profile> <name>` to change settings for this task')
         return None
 
-    new_task = task
-
     # if we add a new task without an order, place it last in the queue of
     # tasks to synchronize by giving it the latest order
-    if new_task.order is None:
-        new_task = Task(task.name,
-                        task.source,
-                        task.destination,
-                        prof.max_order(profile.tasks) + 1)
+    if task.order is None:
+        task = Task(task.name,
+                    task.source,
+                    task.destination,
+                    prof.max_order(profile.tasks) + 1)
 
     if task.order in prof.orders(profile.tasks):
         log.warning("That ordering is already in use")
         log.info('Use `jackup list <profile>` to check ordering of tasks')
         return None
 
-    new_profile = prof.add(profile, new_task)
+    new_profile = prof.add(profile, task)
     return new_profile
 
 def add(config: Config, profile_name: str, task_name: str, source: str, destination: str, order: int) -> None:
