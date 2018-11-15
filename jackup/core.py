@@ -14,11 +14,6 @@ import jackup.logging as log
 import jackup.tableprinter as tp
 
 def _add(config: Config, profile_name, task: Task) -> None:
-    if not prof.exists(config, profile_name):
-        log.info('Profile does not exist, creating...')
-        prof.create(config, profile_name)
-
-    profile = prof.read(config, profile_name)
     profile = prof.get_profile_by_name(config, profile_name)
 
     if task.name in [ t.name for t in profile.tasks ]:
@@ -37,10 +32,7 @@ def _add(config: Config, profile_name, task: Task) -> None:
         return
 
     new_profile = prof.add(profile, task)
-
-    # profile.tasks[task.name] = { 'name': task.name, 'source': task.source, 'destination': task.destination, 'order': task.order }
     prof.write(config, profile.name, prof.toJSON(new_profile))
-
     log.info("added " + profile.name + '/' + task.name)
 
 def add(config: Config, profile_name: str, task_name: str, source: str, destination: str, order: int) -> None:
