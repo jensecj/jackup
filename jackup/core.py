@@ -23,8 +23,8 @@ def _add(config: Config, profile_name, task: Task) -> None:
 
     # if we add a new task without an order, place it last in the queue of
     # tasks to synchronize by giving it the latest order
-    if not task.order:
-        order = prof.max_order(profile) + 1
+    if task.order is None:
+        task.order = prof.max_order(profile.tasks) + 1
 
     if task.order in prof.orders(profile.tasks):
         log.warning("That ordering is already in use")
