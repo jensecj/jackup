@@ -32,8 +32,8 @@ def _add(config: Config, profile: Profile, task: Task) -> Optional[Profile]:
         log.info('Use `jackup list <profile>` to check ordering of tasks')
         return None
 
-    new_profile = prof.add(profile, task)
-    return new_profile
+    profile = prof.add(profile, task)
+    return profile
 
 def add(config: Config, profile_name: str, task_name: str, source: str, destination: str, order: int) -> None:
     """
