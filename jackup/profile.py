@@ -16,9 +16,11 @@ class Profile:
     tasks: List[Task]
 
 def toJSON(profile: Profile):
+    """Serialize a Profile to JSON."""
     return [ T.toJSON(task) for task in profile.tasks ]
 
 def fromJSON(tasks) -> List[Task]:
+    """Serialize a Profile from JSON."""
     return [ T.fromJSON(task) for task in tasks ]
 
 def add(profile: Profile, task: Task) -> Profile:
