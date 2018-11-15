@@ -10,7 +10,7 @@ import jackup.task as T
 from jackup.config import Config
 from jackup.task import Task
 
-@dataclass
+@dataclass(frozen=True)
 class Profile:
     name: str
     tasks: List[Task]
