@@ -52,6 +52,7 @@ def add(config: Config, profile_name: str, task_name: str, source: str, destinat
         prof.write(config, profile.name, prof.toJSON(profile))
         log.info("added " + profile.name + '/' + task.name)
 
+# TODO: extract pure helper function _edit(Config, Profile, Task) -> Profile
 def edit(config: Config, profile_name: str, task_name: str, source: str, destination: str, order: int) -> None:
     """
     Edit TASK, in PROFILE.
@@ -212,6 +213,7 @@ def _sync_profile(config: Config, profile_name: str) -> Tuple[int, int]:
 
     return (completed, num_tasks)
 
+# TODO: extract synchronizing to synchronizer.py, where rsync is a backend
 def sync(config: Config, profile_name: str) -> None:
     """
     Synchronizes all tasks in PROFILE.
