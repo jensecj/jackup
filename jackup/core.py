@@ -208,10 +208,10 @@ def _sync_profile(config: Config, profile_name: str) -> Tuple[int, int]:
     completed = 0
     for task in prof.tasks(config, profile_name):
         if _sync_task(config, task):
-            log.success('Completed syncing ' + profile_name + '/' + task['name'])
+            log.success('Completed syncing ' + profile_name + '/' + task.name)
             completed += 1
         else:
-            log.error('Failed syncing ' + profile_name + '/' + task['name'])
+            log.error('Failed syncing ' + profile_name + '/' + task.name)
 
     return (completed, num_tasks)
 

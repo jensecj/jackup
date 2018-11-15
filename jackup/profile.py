@@ -19,9 +19,9 @@ def toJSON(profile: Profile):
     """Serialize a Profile to JSON."""
     return [ T.toJSON(task) for task in profile.tasks ]
 
-def fromJSON(tasks) -> List[Task]:
+def fromJSON(tasks_json: str) -> List[Task]:
     """Serialize a Profile from JSON."""
-    return [ T.fromJSON(task) for task in tasks ]
+    return [ T.fromJSON(task) for task in tasks_json ]
 
 def add(profile: Profile, task: Task) -> Profile:
     "Adds a TASK to a PROFILE."
@@ -68,7 +68,7 @@ def create(config: Config, profile_name: str) -> None:
 
 def read(config: Config, profile_name: str):
     """
-    Reads the content of the profile-file from disk, and returns it.
+    Reads the content of the profile-file from disk, and returns it as a Profile.
     """
     profile_file = path_to_profile(config, profile_name)
     with open(profile_file, 'r') as profile_db:
@@ -76,6 +76,7 @@ def read(config: Config, profile_name: str):
 
     return fromJSON(tasks)
 
+# TODO: profile_name and content should be merged to a Profile, which is then serialized and saved
 def write(config: Config, profile_name: str, content) -> None:
     """
     Writes new content to the profile-file on disk.
@@ -102,20 +103,20 @@ def profiles(config: Config) -> List[str]:
                  if profile.endswith('.json') ] # that end with '.json', these are the profiles
     return profiles
 
-def tasks(config: Config, profile_name: str):
+def tasks(config: Config, profile_name: str) -> List[Task]:
     """
     Returns all tasks in a profile, sorted by order of synchronization
     """
     tasks = read(config, profile_name)
     return sorted(tasks, key = lambda task: task.order)
 
-def orders(tasks) -> List[int]:
+def orders(tasks: List[Task]) -> List[int]:
     """
     Returns a list of all orders in use in PROFILE
     """
     return [ task.order for task in tasks ]
 
-def max_order(tasks) -> int:
+def max_order(tasks: List[Task]) -> int:
     """
     Get the highest order of any task in TASKS
     """
