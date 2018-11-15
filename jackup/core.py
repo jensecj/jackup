@@ -46,11 +46,11 @@ def add(config: Config, profile_name: str, task_name: str, source: str, destinat
     profile = prof.get_profile_by_name(config, profile_name)
     task = Task(task_name, source, destination, order)
 
-    profile = _add(config, profile, task)
+    new_profile = _add(config, profile, task)
 
-    if profile is not None:
-        prof.write(config, profile.name, prof.toJSON(profile))
-        log.info("added " + profile.name + '/' + task.name)
+    if new_profile is not None:
+        prof.write(config, new_profile.name, prof.toJSON(new_profile))
+        log.info("added " + new_profile.name + '/' + task.name)
 
 # TODO: extract pure helper function _edit(Config, Profile, Task) -> Profile
 def edit(config: Config, profile_name: str, task_name: str, source: str, destination: str, order: int) -> None:
