@@ -43,14 +43,13 @@ def add(config: Config, profile_name: str, task_name: str, source: str, destinat
     ORDER is used to determine the order of synchronization, lower values
     get synchronized first.
     """
-    task = Task(task_name, source, destination, order)
     profile = prof.get_profile_by_name(config, profile_name)
+    task = Task(task_name, source, destination, order)
 
-    # TODO: extract profile from profile_name, and pass to _add
-    new_profile = _add(config, profile, task)
+    profile = _add(config, profile, task)
 
-    if new_profile is not None:
-        prof.write(config, profile.name, prof.toJSON(new_profile))
+    if profile is not None:
+        prof.write(config, profile.name, prof.toJSON(profile))
         log.info("added " + profile.name + '/' + task.name)
 
 def edit(config: Config, profile_name: str, task_name: str, source: str, destination: str, order: int) -> None:
