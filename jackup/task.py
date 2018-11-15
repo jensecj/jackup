@@ -2,7 +2,7 @@ from dataclasses import dataclass
 
 import json
 
-@dataclass
+@dataclass(frozen=True)
 class Task:
     name: str
     source: str
