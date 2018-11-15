@@ -15,7 +15,7 @@ import jackup.tableprinter as tp
 
 def _add(config: Config, profile: Profile, task: Task) -> Optional[Profile]:
     if task.name in [ t.name for t in profile.tasks ]:
-        log.warning('That task already exists')
+        log.warning('A task with that name already exists')
         log.info('Use `jackup edit <profile> <name>` to change settings for this task')
         return None
 
