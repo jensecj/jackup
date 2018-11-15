@@ -3,7 +3,7 @@ import json
 import subprocess
 
 from datetime import datetime
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 
 from jackup.profile import Profile
 from jackup.task import Task
@@ -13,27 +13,29 @@ import jackup.profile as prof
 import jackup.logging as log
 import jackup.tableprinter as tp
 
-def _add(config: Config, profile_name, task: Task) -> None:
-    profile = prof.get_profile_by_name(config, profile_name)
-
+def _add(config: Config, profile: Profile, task: Task) -> Optional[Profile]:
     if task.name in [ t.name for t in profile.tasks ]:
         log.warning('That task already exists')
         log.info('Use `jackup edit <profile> <name>` to change settings for this task')
-        return
+        return None
+
+    new_task = task
 
     # if we add a new task without an order, place it last in the queue of
     # tasks to synchronize by giving it the latest order
-    if task.order is None:
-        task.order = prof.max_order(profile.tasks) + 1
+    if new_task.order is None:
+        new_task = Task(task.name,
+                        task.source,
+                        task.destination,
+                        prof.max_order(profile.tasks) + 1)
 
     if task.order in prof.orders(profile.tasks):
         log.warning("That ordering is already in use")
         log.info('Use `jackup list <profile>` to check ordering of tasks')
-        return
+        return None
 
-    new_profile = prof.add(profile, task)
-    prof.write(config, profile.name, prof.toJSON(new_profile))
-    log.info("added " + profile.name + '/' + task.name)
+    new_profile = prof.add(profile, new_task)
+    return new_profile
 
 def add(config: Config, profile_name: str, task_name: str, source: str, destination: str, order: int) -> None:
     """
@@ -44,9 +46,14 @@ def add(config: Config, profile_name: str, task_name: str, source: str, destinat
     get synchronized first.
     """
     task = Task(task_name, source, destination, order)
+    profile = prof.get_profile_by_name(config, profile_name)
 
     # TODO: extract profile from profile_name, and pass to _add
-    _add(config, profile_name, task)
+    new_profile = _add(config, profile, task)
+
+    if new_profile is not None:
+        prof.write(config, profile.name, prof.toJSON(new_profile))
+        log.info("added " + profile.name + '/' + task.name)
 
 def edit(config: Config, profile_name: str, task_name: str, source: str, destination: str, order: int) -> None:
     """
