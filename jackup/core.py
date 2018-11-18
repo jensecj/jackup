@@ -182,14 +182,14 @@ def _read_ignore_file(config: Config, folder: str) -> List[str]:
 
     return excludes
 
-def _sync_task(config: Config, task) -> bool:
+def _sync_task(config: Config, task: Task) -> bool:
     """
     Tries to synchronize a task.
     """
-    log.info('Syncing ' + task['name'] + ": " + task['source'] + ' -> ' + task['destination'])
+    log.info('Syncing ' + task.name + ": " + task.source + ' -> ' + task.destination)
 
-    excludes = _read_ignore_file(config, task['source'])
-    rsync_stderr = _rsync(config, task['source'], task['destination'], excludes)
+    excludes = _read_ignore_file(config, task.source)
+    rsync_stderr = _rsync(config, task.source, task.destination, excludes)
 
     if rsync_stderr:
         log.error(rsync_stderr)
