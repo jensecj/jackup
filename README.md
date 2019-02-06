@@ -3,6 +3,9 @@
 # What is Jackup?
 Jackup is a simple file synchronizer.
 
+_**TL;DR**_: It keeps a repository of `source, destination` pairs, and then
+synchronizes them when asked to.
+
 I have a server in my living room, and I also have
 an external harddrive I bring with me.
 
