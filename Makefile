@@ -11,7 +11,7 @@ install:
 	pip install -e .
 
 clean:
-	rm -r dist build jackup.egg-info __pycache__
+	rm -r dist build jackup.egg-info __pycache__ .mypy_cache .pytest_cache .cache .direnv .eggs
 
 deps:
 	pip install -r requirements.txt
