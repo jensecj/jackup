@@ -174,7 +174,7 @@ def _read_ignore_file(config: Config, folder: str) -> List[str]:
     Reads the .jackupignore file, if any, from a folder
     """
     excludes = []
-    ignore_file = os.path.join(os.path.dirname(folder), '.jackupignore')
+    ignore_file = os.path.join(folder, '.jackupignore')
     if os.path.isfile(ignore_file):
         with open(ignore_file, 'r') as ignore_db:
             for line in ignore_db:
