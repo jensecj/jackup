@@ -148,19 +148,32 @@ def _rsync(config: Config, source: str, destination: str, excludes=[]) -> str:
     """
     Wrapper for =rsync=, handles syncing SOURCE to DESTINATION.
     """
-    rsync_args = ['--log-file=' + config.log_path,
-                  '--partial', '--progress', '--archive',
-                  '--recursive', '--human-readable',
-                  #'--timeout=30',
-                  '--copy-links',
-                  '--xattrs',
-                  '--new-compress',
-                  # '--perms',
-                  # '--checksum',
-                  # '--quiet',
-                  '--verbose',
-                  # '--dry-run'
-                  # '--delete'
+    rsync_args = [
+        "--log-file=" + config.log_path,
+        "--partial",
+        # "--progress",
+        # "--verbose",
+        "--info=BACKUP,COPY,DEL,FLIST2,PROGRESS2,REMOVE,MISC2,STATS1,SYMSAFE",
+        "--human-readable",
+        # "--archive",  # -rlptgoD
+        "--recursive",
+        "--links",  # copy symlinks as symlinks
+        "--perms",  # preserve permissions
+        "--times",  # perserve modification times
+        "--group",  # preserve group
+        "--owner",  # preserve owner
+        "--devices",  # preserve device files
+        "--specials",  # preserve special files
+        "--executability",  # preserve executability
+        # "--xattrs",  # preserve extended attributes
+        #'--timeout=30',
+        # "--copy-links",  # transform links into the referent dirs/files
+        # "--compress", # compress files during transfer
+        "--new-compress",
+        # '--checksum',
+        # '--quiet',
+        # '--dry-run'
+        # '--delete' # add this as a per-entry setting
     ]
 
     for ex in excludes:
