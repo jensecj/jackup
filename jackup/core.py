@@ -128,7 +128,10 @@ def _sync_task(config: Config, task: Task) -> bool:
     log.info(f"syncing {task.source} -> {task.destination}")
 
     excludes = _read_ignore_file(config, task.source)
-    rsync_stderr = _rsync(config, task.source, task.destination, excludes)
+
+    source = os.path.expanduser(task.source)
+    destination = os.path.expanduser(task.destination)
+    rsync_stderr = _rsync(config, source, destination, excludes, task.args)
 
     if rsync_stderr:
         log.error(rsync_stderr)
