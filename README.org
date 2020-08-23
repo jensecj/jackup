@@ -1,0 +1,129 @@
+* Jackup
+#+begin_quote
+This is alpha software, use with causion, it may spirit-away your files.
+#+end_quote
+
+Jackup is a simple tool for synchronizing files between folders, disks, external media, or over
+the network.
+
+Given a set of profiles, which contain =source, destination= pairs (and optional extras),
+jackup synchronizes them when asked to.
+
+A profile is just a =.json= file:
+
+=~/.config/jackup/pull_phone.json=:
+#+begin_src json
+[
+    {
+        "name": "dcim",
+        "src": "phone:/storage/emulated/0/DCIM",
+        "dest": "~/private/phone/",
+        "exclude": [".thumbnails/"]
+    },
+    {
+        "name": "backup",
+        "src": "phone:/storage/emulated/0/backup",
+        "dest": "~/private/phone/",
+        "args": ["--delete"]
+    }
+]
+#+end_src
+Now when I run =jackup sync pull_phone= jackup will try to sync all the tasks in order.
+
+In the case above =phone:= is resolved from your ssh-config by =rsync=:
+
+=~/.ssh/config=:
+#+begin_src conf
+Host phone
+User jens
+IdentityFile ~/.ssh/termux
+HostName 192.168.0.4
+Port 8022
+#+end_src
+Since jackup uses rsync to synchronize files, transfers are incremental and compressed.
+* CLI
+#+begin_example
+usage: jackup [-h] [-v] {list,sync} ...
+
+positional arguments:
+    list (ls)     List tasks in profiles
+    sync          Synchronize profiles
+
+optional arguments:
+  -h, --help      show this help message and exit
+  -v, --version   show program's version number and exit
+#+end_example
+#+begin_example
+usage: jackup list [-h] [PROFILES]...
+
+optional arguments:
+  profiles    Profiles with tasks to list
+  -h, --help  show this help message and exit
+#+end_example
+#+begin_example
+usage: jackup sync [-h] [-q] [-v] PROFILES...
+
+positional arguments:
+  profiles       Profiles with tasks to sync
+
+optional arguments:
+  -h, --help     show this help message and exit
+  -q, --quiet    less verbose
+  -v, --verbose  more verbose
+#+end_example
+
+When you're ready to sync:
+#+begin_src bash
+$ jackup sync PROFILE...
+#+end_src
+
+Jackup will then try to sync to all available tasks, it will perform synchronization in the
+order of appearance in the profiles.
+
+If either source or destination is unavailable (no connection, unmounted, non-existant, etc.)
+jackup will tell you.
+
+You can list all profiles on the system:
+#+begin_src bash
+$ jackup ls
+#+end_src
+
+#+begin_example
+profiles:
+- pull_phone [2]
+#+end_example
+
+Or list all tasks in a profile:
+#+begin_src bash
+$ jackup list pull_phone
+#+end_src
+
+#+begin_example
+source                            | destination       | args
+----------------------------------+-------------------+---------
+phone:/storage/emulated/0/DCIM    | ~/private/phone/  |
+phone:/storage/emulated/0/backup  | ~/private/phone/  | --delete
+#+end_example
+* Development
+Prerequisites:
+- =Python ≥ 3.8=
+- =rsync ≥ 3.1.2=
+
+setup virtual environment and activate it
+#+begin_src bash
+python -m venv venv
+. venv/bin/activate
+#+end_src
+
+install development dependencies
+#+begin_src bash
+pip install --upgrade pip
+pip install --upgrade -r requirements-dev.txt
+#+end_src
+
+build standalone file you run (e.g as a symlink to =/usr/local/bin/jackup=)
+#+begin_src bash
+just clean build pack
+#+end_src
+
+which puts the zipapp in =./dist/jackup=
