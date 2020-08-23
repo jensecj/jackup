@@ -228,3 +228,4 @@ def sync(config, profiles: List[str], quiet: bool, verbose: bool) -> None:
         log.success("all profiles synchronized successfully")
     else:
         log.warning(f"{failures} profile(s) failed to sync all tasks")
+        sys.exit(failures)
