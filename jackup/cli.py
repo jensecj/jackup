@@ -10,12 +10,14 @@ from jackup.config import Config
 
 def main():
     semver = pkg_resources.require("jackup")[0].version
-    parser = argparse.ArgumentParser(description="Jackup: Simple Synchronization.")
+
+    parser = argparse.ArgumentParser(description="Jackup: low-key file juggler")
     parser.add_argument(
-        "-v", "--version", action="version", version="%(prog)s " + semver
+        "-v", "--version", action="version", version=f"%(prog)s {semver}"
     )
     subparsers = parser.add_subparsers()
 
+    # TODO: add completion of profiles
     list_parser = subparsers.add_parser(
         "list", aliases=["ls"], help="List tasks in profiles"
     )
@@ -23,13 +25,10 @@ def main():
     list_parser.set_defaults(func=list)
 
     sync_parser = subparsers.add_parser("sync", help="Synchronizes a profile")
-    # TODO: allow multiple profiles, and sync in order
-    sync_parser.add_argument("profile_name", help="Profile with tasks to synchronize")
+    sync_parser.add_argument("profiles", nargs="*", help="Profiles with tasks to sync")
+    sync_parser.add_argument("-q", "--quiet", action="store_true", help="less verbose")
     sync_parser.add_argument(
-        "-q", "--quiet", nargs="?", type=bool, help="Be less verbose"
-    )
-    sync_parser.add_argument(
-        "-v", "--verbose", action="store_true", help="Be more verbose"
+        "-v", "--verbose", action="store_true", help="more verbose"
     )
     sync_parser.set_defaults(func=sync)
 
