@@ -33,15 +33,12 @@ def _list_profile(config: Config, profile_name: str):
     The listing is sorted by order of synchronization.
     """
     if not prof.exists(config, profile_name):
-        log.warning("That profile does not exist")
+        log.warning(f"the profile '{profile_name}' does not exist")
         return
 
-    table = [ ['task', 'source', 'destination', 'order'] ]
+    table = [["source", "destination"]]
     for task in prof.tasks(config, profile_name):
-        table.append([ task.name,
-                       task.source,
-                       task.destination,
-                       str(task.order) ])
+        table.append([task.source, task.destination])
 
     return table
 
@@ -123,11 +120,12 @@ def _read_ignore_file(config: Config, folder: str) -> List[str]:
 
     return excludes
 
+
 def _sync_task(config: Config, task: Task) -> bool:
     """
     Tries to synchronize a task.
     """
-    log.info('Syncing ' + task.name + ": " + task.source + ' -> ' + task.destination)
+    log.info(f"syncing {task.source} -> {task.destination}")
 
     excludes = _read_ignore_file(config, task.source)
     rsync_stderr = _rsync(config, task.source, task.destination, excludes)
@@ -138,6 +136,7 @@ def _sync_task(config: Config, task: Task) -> bool:
     else:
         return True
 
+
 def _sync_profile(config: Config, profile_name: str) -> Tuple[int, int]:
     """
     Tries to synchronize all tasks in PROFILE.
@@ -147,10 +146,10 @@ def _sync_profile(config: Config, profile_name: str) -> Tuple[int, int]:
     completed = 0
     for task in prof.tasks(config, profile_name):
         if _sync_task(config, task):
-            log.success('Completed syncing ' + profile_name + '/' + task.name)
+            log.success(f"completed syncing {profile_name}/{task.name}\n")
             completed += 1
         else:
-            log.error('Failed syncing ' + profile_name + '/' + task.name)
+            log.error(f"failed syncing {profile_name}/{task.name}\n")
 
     return (completed, num_tasks)
 
@@ -160,21 +159,21 @@ def sync(config: Config, profile_name: str) -> None:
     Synchronizes all tasks in PROFILE.
     """
     if not prof.exists(config, profile_name):
-        log.error("That profile does not exist")
+        log.error(f"the profile '{profile_name}' does not exist")
         return
 
     if not prof.lock(config, profile_name):
-        log.error("`jackup sync` is already running for " + profile_name)
+        log.error(f"sync is already running for {profile_name}")
         return
 
     try:
         start_time = datetime.now()
-        log.info("Starting sync at " + str(start_time))
+        log.info(f"starting sync at {start_time}")
         (completed_tasks, total_tasks) = _sync_profile(config, profile_name)
 
         # report ratio of sucessful tasks to the total number of tasks,
         # color coded, based on success-rate of the synchronization
-        task_ratio = str(completed_tasks) + '/' + str(total_tasks)
+        task_ratio = f"{completed_tasks}/{total_tasks}"
 
         if completed_tasks == 0 and total_tasks > 0:
             task_ratio = log.RED(task_ratio)
@@ -185,10 +184,10 @@ def sync(config: Config, profile_name: str) -> None:
 
         end_time = datetime.now()
 
-        log.info('Synchronized ' + task_ratio + " tasks")
-        log.info('Completed syncing ' + profile_name)
-        log.info("Synching ended at " + str(end_time) + ", took " + str(end_time - start_time))
+        log.info(f"synchronized {task_ratio} tasks")
+        log.info(f"completed syncing {profile_name}")
+        log.info(f"syncing ended at {end_time}, took {end_time - start_time}")
     except KeyboardInterrupt:
-        log.warning("\nSynchronization interrupted by user")
+        log.warning("\n\nSynchronization interrupted by user")
     finally:
         prof.unlock(config, profile_name)
