@@ -89,7 +89,9 @@ def lock(config: Config, profile_name: str) -> bool:
     if os.path.isfile(lockfile_path):
         return False
 
-    open(lockfile_path, "w").close()
+    with open(lockfile_path, "w") as f:
+        f.write(str(os.getpid()))
+
     return True
 
 
