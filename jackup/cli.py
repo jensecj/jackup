@@ -17,12 +17,9 @@ def main():
     subparsers = parser.add_subparsers()
 
     list_parser = subparsers.add_parser(
-        "list", aliases=["ls"], help="List tasks in profile"
+        "list", aliases=["ls"], help="List tasks in profiles"
     )
-    list_parser.add_argument("profile_name", nargs="?", help="Profile to list tasks of")
-    list_parser.add_argument(
-        "-v", "--verbose", nargs="?", type=bool, help="Be more verbose"
-    )
+    list_parser.add_argument("profiles", nargs="*", help="Profiles to list tasks of")
     list_parser.set_defaults(func=list)
 
     sync_parser = subparsers.add_parser("sync", help="Synchronizes a profile")

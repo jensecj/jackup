@@ -1,4 +1,5 @@
 import os
+import sys
 import json
 import subprocess
 
@@ -32,7 +33,7 @@ def _list_profile(config: Config, profile_name: str):
     The listing is sorted by order of synchronization.
     """
     if not prof.exists(config, profile_name):
-        log.warning('That profile does not exist')
+        log.warning("That profile does not exist")
         return
 
     table = [ ['task', 'source', 'destination', 'order'] ]
@@ -44,20 +45,32 @@ def _list_profile(config: Config, profile_name: str):
 
     return table
 
-def list(config: Config, profile_name: str) -> None:
+
+def list(config: Config, profiles: List[str]) -> None:
     """
     If given a PROFILE, list all tasks in that profile, otherwise list all
     available profiles on the system.
     """
-    if profile_name:
-        tp.print_table(_list_profile(config, profile_name))
-    else:
-        log.info('Profiles:')
+    if not profiles:
+        log.info("profiles:")
         for profile in _list_available_profiles(config):
             print("* %s [%s]" % profile)
 
-# TODO: maybe use rclone instead of rsync?
-def _rsync(config: Config, source: str, destination: str, excludes=[]) -> str:
+        return
+
+    for profile in profiles:
+        if not prof.exists(config, profile):
+            log.error(f"the profile '{profile}' does not exist")
+            continue
+
+        log.info(f"profile: {profile}")
+        if profile:
+            tp.print_table(_list_profile(config, profile))
+            print()
+
+
+# TODO: move to own synchronizer backend
+def _rsync(config: Config, src: str, dest: str, excludes=[]) -> str:
     """
     Wrapper for =rsync=, handles syncing SOURCE to DESTINATION.
     """
