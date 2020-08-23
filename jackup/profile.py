@@ -2,52 +2,28 @@ import os
 import json
 
 from typing import List
+from types import SimpleNamespace as Namespace
 from dataclasses import dataclass
 
 import jackup.logging as log
-import jackup.task as T
 
 from jackup.config import Config
 from jackup.task import Task
+
 
 @dataclass(frozen=True)
 class Profile:
     name: str
     tasks: List[Task]
 
-def toJSON(profile: Profile):
-    """Serialize a Profile to JSON."""
-    return [ T.toJSON(task) for task in profile.tasks ]
-
-def fromJSON(tasks_json: str) -> List[Task]:
-    """Serialize a Profile from JSON."""
-    return [ T.fromJSON(task) for task in tasks_json ]
-
-def add(profile: Profile, task: Task) -> Profile:
-    "Adds a TASK to a PROFILE."
-    new_tasks = profile.tasks
-    new_tasks.append(task)
-    new_profile = Profile(profile.name, new_tasks)
-    return new_profile
-
-def get_profile_by_name(config: Config, profile_name: str) -> Profile:
-    """
-    If a profile with PROFILE_NAME exists, it is returned, otherwise it is
-    created.
-    """
-    if not exists(config, profile_name):
-        log.info('Profile does not exist, creating...')
-        create(config, profile_name)
-
-    tasks = read(config, profile_name)
-
-    return Profile(profile_name, tasks)
 
 def path_to_profile(config: Config, profile_name: str) -> str:
     """
     Returns the path to the file belonging to PROFILE.
     """
-    return os.path.join(config.jackup_path, profile_name + '.json')
+    if profile_name:
+        return os.path.join(config.jackup_path, profile_name + ".json")
+
 
 def exists(config: Config, profile_name: str) -> bool:
     """
@@ -55,41 +31,29 @@ def exists(config: Config, profile_name: str) -> bool:
     Is checked by the existence of the corresponding file in the jackup
     directory.
     """
-    path = path_to_profile(config, profile_name)
-    return os.path.isfile(path)
+    if path := path_to_profile(config, profile_name):
+        return os.path.isfile(path)
 
-def create(config: Config, profile_name: str) -> None:
-    """
-    Creates a new empty PROFILE, with the given name.
-    """
-    path = path_to_profile(config, profile_name)
-    with open(path, 'w') as profile_db:
-        json.dump({}, profile_db, indent=4)
 
 def read(config: Config, profile_name: str):
     """
     Reads the content of the profile-file from disk, and returns it as a Profile.
     """
-    profile_file = path_to_profile(config, profile_name)
-    with open(profile_file, 'r') as profile_db:
-        tasks = json.load(profile_db)
+    default = {"exclude": [], "args": []}
 
-    return fromJSON(tasks)
-
-# TODO: profile_name and content should be merged to a Profile, which is then serialized and saved
-def write(config: Config, profile_name: str, content) -> None:
-    """
-    Writes new content to the profile-file on disk.
-    """
     profile_file = path_to_profile(config, profile_name)
-    with open(profile_file, 'w') as profile_db:
-        json.dump(content, profile_db, indent=4)
+    with open(profile_file, "r") as db:
+        tasks = json.load(db, object_hook=lambda d: Namespace(**{**default, **d}))
+
+    return tasks
+
 
 def path_to_profile_lock(config: Config, profile_name: str) -> str:
     """
     Returns the path to the lockfile belonging to PROFILE.
     """
-    return os.path.join(config.jackup_path, profile_name + '.lock')
+    return os.path.join(config.jackup_path, profile_name + ".lock")
+
 
 def profiles(config: Config) -> List[str]:
     """
@@ -97,34 +61,22 @@ def profiles(config: Config) -> List[str]:
     This is done by finding all profile-files (files ending in .json) in the
     jackup directory.
     """
-    profiles = [ profile[:-5] # dont include the last 5 charaters of the filename ('.json')
-                 for profile
-                 in os.listdir(config.jackup_path) # list all files in the jackup directory
-                 if profile.endswith('.json') ] # that end with '.json', these are the profiles
-    return profiles
+    # list all files in the jackup directory that end with '.json', these are the profiles
+    return [
+        # dont include the last 5 charaters of the filename ('.json')
+        os.path.splitext(profile)[0]
+        for profile in os.listdir(config.jackup_path)
+        if profile.endswith(".json")
+    ]
+
 
 def tasks(config: Config, profile_name: str) -> List[Task]:
     """
     Returns all tasks in a profile, sorted by order of synchronization
     """
     tasks = read(config, profile_name)
-    return sorted(tasks, key = lambda task: task.order)
+    return tasks
 
-def orders(tasks: List[Task]) -> List[int]:
-    """
-    Returns a list of all orders in use in PROFILE
-    """
-    return [ task.order for task in tasks ]
-
-def max_order(tasks: List[Task]) -> int:
-    """
-    Get the highest order of any task in TASKS
-    """
-    # if there are no tasks in the tasks, the new ordering starts at 1.
-    if len(tasks) == 0:
-        return 1
-
-    return max(orders(tasks))
 
 def lock(config: Config, profile_name: str) -> bool:
     """
@@ -135,10 +87,11 @@ def lock(config: Config, profile_name: str) -> bool:
     lockfile_path = path_to_profile_lock(config, profile_name)
 
     if os.path.isfile(lockfile_path):
-            return False
+        return False
 
-    open(lockfile_path, 'w').close()
+    open(lockfile_path, "w").close()
     return True
+
 
 def unlock(config: Config, profile_name: str) -> None:
     """
