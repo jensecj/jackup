@@ -40,8 +40,8 @@ def main():
         parser.print_help()
         return
 
-    jackup_dir = os.path.join(Path.home(), '.jackup')
-    jackup_log = os.path.join(jackup_dir, "log")
+    jackup_dir = os.path.expanduser("~/.config/jackup/")
+    jackup_log = os.path.join(jackup_dir, "log")  # TODO: log to /var/log?
 
     # create jackup directory if it does not exist
     if not os.path.isdir(jackup_dir):
