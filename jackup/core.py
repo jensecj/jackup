@@ -67,9 +67,7 @@ def list(config, profiles: List[str]) -> None:
 
 
 # TODO: move to own synchronizer backend
-def _rsync(
-    config, src: str, dest: str, excludes: List[str] = [], extraargs: List[str] = [],
-) -> str:
+def _rsync(config, src: str, dest: str, args: List[str] = []) -> str:
     """
     Wrapper for =rsync=, handles syncing SRC to DEST.
     """
@@ -93,20 +91,13 @@ def _rsync(
         # "--specials",  # -D, preserve special files
         "--executability",  # preserve executability
         "--xattrs",  # preserve extended attributes
+        "--acls",  # preserve ACLS
         # "--copy-links",  # transform links into the referent dirs/files
         "--compress",  # compress files during transfer
         # "--dry-run",
     ]
 
-    if log.LOG_LEVEL < log.LEVEL.INFO:
-        rsync_args += ["--quiet"]
-    elif log.LOG_LEVEL > log.LEVEL.INFO:
-        rsync_args += ["--verbose"]
-
-    for ex in excludes:
-        rsync_args += ["--exclude=" + ex]
-
-    rsync_args += extraargs
+    rsync_args += args
     log.debug(f"rsync {rsync_args} {src} {dest}")
 
     # call the `rsync` tool, capture errors and return them if any.
@@ -142,7 +133,18 @@ def _sync_task(config, task: Task) -> bool:
 
     source = os.path.expanduser(task.src)
     destination = os.path.expanduser(task.dest)
-    rsync_stderr = _rsync(config, source, destination, excludes, task.args)
+
+    args = task.args
+
+    for ex in excludes:
+        args += ["--exclude=" + ex]
+
+    if log.LOG_LEVEL < log.LEVEL.INFO:
+        args += ["--quiet"]
+    elif log.LOG_LEVEL > log.LEVEL.INFO:
+        args += ["--verbose"]
+
+    rsync_stderr = _rsync(config, source, destination, args)
 
     if rsync_stderr:
         log.error(rsync_stderr)
