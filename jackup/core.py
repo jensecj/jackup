@@ -10,7 +10,7 @@ from jackup.profile import Profile
 from jackup.task import Task
 
 import jackup.profile as prof
-import jackup.logging as log
+import jackup.log as log
 import jackup.tableprinter as tp
 
 
@@ -98,16 +98,16 @@ def _rsync(
         # "--dry-run",
     ]
 
-    # if logging verbosity is quiet:
-    #      rsync_args += ["--quiet"]
-
-    # if logging verbosity is verbose:
-    #      rsync_args += ["--verbose"]
+    if log.LOG_LEVEL < log.LEVEL.INFO:
+        rsync_args += ["--quiet"]
+    elif log.LOG_LEVEL > log.LEVEL.INFO:
+        rsync_args += ["--verbose"]
 
     for ex in excludes:
         rsync_args += ["--exclude=" + ex]
 
     rsync_args += extraargs
+    log.debug(f"rsync {rsync_args} {src} {dest}")
 
     # call the `rsync` tool, capture errors and return them if any.
     cmd_rsync = subprocess.run(
@@ -211,12 +211,10 @@ def sync(config, profiles: List[str], quiet: bool, verbose: bool) -> None:
     Synchronizes all tasks in PROFILE.
     """
     if verbose:
-        # SET LOG LEVEL VERBOSE
-        print("VERBOSE")
+        log.set_level(log.LEVEL.DEBUG)
 
     if quiet:
-        # SET LOG LEVEL WARNINIG (quiet)
-        print("quiet")
+        log.set_level(log.LEVEL.WARNING)
 
     failures = 0
     for profile in profiles:

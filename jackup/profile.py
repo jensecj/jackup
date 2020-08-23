@@ -5,8 +5,7 @@ from typing import List
 from types import SimpleNamespace as Namespace
 from dataclasses import dataclass
 
-import jackup.logging as log
-
+import jackup.log as log
 from jackup.task import Task
 
 
