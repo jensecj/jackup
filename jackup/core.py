@@ -6,9 +6,6 @@ import subprocess
 from datetime import datetime
 from typing import List, Tuple, Optional
 
-from jackup.profile import Profile
-from jackup.task import Task
-
 import jackup.profile as prof
 import jackup.log as log
 import jackup.tableprinter as tp
@@ -19,24 +16,24 @@ def _list_available_profiles(config) -> List[Tuple[str, str]]:
     List all available profiles on the system.
     """
     profiles = []
-    for profile_name in prof.profiles(config):
-        number_of_tasks = len(prof.tasks(config, profile_name))
-        profiles.append((profile_name, str(number_of_tasks)))
+    for profile in prof.profiles(config):
+        number_of_tasks = len(prof.tasks(config, profile))
+        profiles.append((profile, str(number_of_tasks)))
 
     return profiles
 
 
-def _list_profile(config, profile_name: str):
+def _list_profile(config, profile: str):
     """
     List all tasks in PROFILE, their source, destination.
     The listing is sorted by order of synchronization.
     """
-    if not prof.exists(config, profile_name):
-        log.warning(f"the profile '{profile_name}' does not exist")
+    if not prof.exists(config, profile):
+        log.warning(f"the profile '{profile}' does not exist")
         return
 
     table = [["source", "destination", "args"]]
-    for task in prof.tasks(config, profile_name):
+    for task in prof.tasks(config, profile):
         args = " ".join(task.args)
         table.append([task.src, task.dest, args])
 
@@ -48,22 +45,23 @@ def list(config, profiles: List[str]) -> None:
     If given a PROFILE, list all tasks in that profile, otherwise list all
     available profiles on the system.
     """
-    if not profiles:
+    if profiles:
+        for profile in profiles:
+            if not prof.exists(config, profile):
+                log.error(f"the profile '{profile}' does not exist")
+                continue
+
+            log.info(f"profile: {profile}")
+            if profile:
+                tp.print_table(_list_profile(config, profile))
+                print()
+    else:
         log.info("profiles:")
         for profile in _list_available_profiles(config):
             print("* %s [%s]" % profile)
 
-        return
 
-    for profile in profiles:
-        if not prof.exists(config, profile):
-            log.error(f"the profile '{profile}' does not exist")
-            continue
 
-        log.info(f"profile: {profile}")
-        if profile:
-            tp.print_table(_list_profile(config, profile))
-            print()
 
 
 # TODO: move to own synchronizer backend
@@ -122,13 +120,13 @@ def _read_ignore_file(config: Config, folder: str) -> List[str]:
     return excludes
 
 
-def _sync_task(config, task: Task) -> bool:
+def _sync_task(config, task) -> bool:
     """
     Tries to synchronize a task.
     """
     log.info(f"syncing {task.src} -> {task.dest}")
 
-    # TODO: also pull in ignores from profile file
+    # TODO: also ignore directories which contain a beacon-file (e.g. .rsyncignore)
     excludes = _read_ignore_file(config, task.src)
 
     source = os.path.expanduser(task.src)
@@ -153,19 +151,19 @@ def _sync_task(config, task: Task) -> bool:
         return True
 
 
-def _sync_profile(config, profile_name: str) -> Tuple[int, int]:
+def _sync_profile(config, profile: str) -> Tuple[int, int]:
     """
     Tries to synchronize all tasks in PROFILE.
     Returns a tuple of successful tasks, and total tasks.
     """
-    num_tasks = len(prof.read(config, profile_name))
+    num_tasks = len(prof.load(config, profile))
     completed = 0
-    for task in prof.tasks(config, profile_name):
+    for task in prof.tasks(config, profile):
         if _sync_task(config, task):
-            log.success(f"finished syncing {profile_name}/{task.name}\n")
+            log.success(f"finished syncing {profile}/{task.name}\n")
             completed += 1
         else:
-            log.error(f"failed syncing {profile_name}/{task.name}\n")
+            log.error(f"failed syncing {profile}/{task.name}\n")
 
     return (completed, num_tasks)
 
