@@ -107,14 +107,15 @@ def _rsync(config: Config, src: str, dest: str, excludes=[]) -> str:
     rsync_stderr = str(cmd_rsync.stderr, 'utf-8', 'ignore').strip()
     return rsync_stderr
 
+
 def _read_ignore_file(config: Config, folder: str) -> List[str]:
     """
     Reads the .jackupignore file, if any, from a folder
     """
     excludes = []
-    ignore_file = os.path.join(folder, '.jackupignore')
+    ignore_file = os.path.join(folder, ".jackupignore")
     if os.path.isfile(ignore_file):
-        with open(ignore_file, 'r') as ignore_db:
+        with open(ignore_file, "r") as ignore_db:
             for line in ignore_db:
                 excludes.append(line.strip())
 
@@ -127,6 +128,7 @@ def _sync_task(config: Config, task: Task) -> bool:
     """
     log.info(f"syncing {task.source} -> {task.destination}")
 
+    # TODO: also pull in ignores from profile file
     excludes = _read_ignore_file(config, task.source)
 
     source = os.path.expanduser(task.source)
@@ -149,7 +151,7 @@ def _sync_profile(config: Config, profile_name: str) -> Tuple[int, int]:
     completed = 0
     for task in prof.tasks(config, profile_name):
         if _sync_task(config, task):
-            log.success(f"completed syncing {profile_name}/{task.name}\n")
+            log.success(f"finished syncing {profile_name}/{task.name}\n")
             completed += 1
         else:
             log.error(f"failed syncing {profile_name}/{task.name}\n")
@@ -188,8 +190,8 @@ def sync(config: Config, profile_name: str) -> None:
         end_time = datetime.now()
 
         log.info(f"synchronized {task_ratio} tasks")
-        log.info(f"completed syncing {profile_name}")
-        log.info(f"syncing ended at {end_time}, took {end_time - start_time}")
+        log.info(f"finished syncing {profile_name}")
+        log.info(f"sync ended at {end_time}, took {end_time - start_time}")
     except KeyboardInterrupt:
         log.warning("\n\nSynchronization interrupted by user")
     finally:
