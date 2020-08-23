@@ -67,44 +67,57 @@ def list(config: Config, profiles: List[str]) -> None:
 
 
 # TODO: move to own synchronizer backend
-def _rsync(config: Config, src: str, dest: str, excludes=[]) -> str:
+def _rsync(
+    config: Config,
+    src: str,
+    dest: str,
+    excludes: List[str] = [],
+    extraargs: List[str] = [],
+) -> str:
     """
-    Wrapper for =rsync=, handles syncing SOURCE to DESTINATION.
+    Wrapper for =rsync=, handles syncing SRC to DEST.
     """
     rsync_args = [
         "--log-file=" + config.log_path,
-        "--partial",
-        # "--progress",
-        # "--verbose",
+        # print number of files, bytes sent/recieved, throughput, and total size
         "--info=BACKUP,COPY,DEL,FLIST2,PROGRESS2,REMOVE,MISC2,STATS1,SYMSAFE",
+        "--no-motd",
+        # "--timeout=30",
+        "--partial",
+        "--progress",
         "--human-readable",
-        # "--archive",  # -rlptgoD
-        "--recursive",
-        "--links",  # copy symlinks as symlinks
-        "--perms",  # preserve permissions
-        "--times",  # perserve modification times
-        "--group",  # preserve group
-        "--owner",  # preserve owner
-        "--devices",  # preserve device files
-        "--specials",  # preserve special files
+        "--archive",  # -rlptgoD
+        # "--recursive", # -r
+        # "--links",  # -l, copy symlinks as symlinks
+        # "--perms",  # -p, preserve permissions
+        # "--times",  # -t, perserve modification times
+        # "--group",  # -g, preserve group
+        # "--owner",  # -o, preserve owner
+        # "--devices",  # -D, preserve device files (superuser only)
+        # "--specials",  # -D, preserve special files
         "--executability",  # preserve executability
-        # "--xattrs",  # preserve extended attributes
-        #'--timeout=30',
+        "--xattrs",  # preserve extended attributes
         # "--copy-links",  # transform links into the referent dirs/files
-        # "--compress", # compress files during transfer
-        "--new-compress",
-        # '--checksum',
-        # '--quiet',
-        # '--dry-run'
-        # '--delete' # add this as a per-entry setting
+        "--compress",  # compress files during transfer
+        # "--dry-run",
     ]
 
+    # if logging verbosity is quiet:
+    #      rsync_args += ["--quiet"]
+
+    # if logging verbosity is verbose:
+    #      rsync_args += ["--verbose"]
+
     for ex in excludes:
-        rsync_args += ['--exclude=' + ex]
+        rsync_args += ["--exclude=" + ex]
+
+    rsync_args += extraargs
 
     # call the `rsync` tool, capture errors and return them if any.
-    cmd_rsync = subprocess.run(['rsync'] + rsync_args + [source, destination], stderr=subprocess.PIPE)
-    rsync_stderr = str(cmd_rsync.stderr, 'utf-8', 'ignore').strip()
+    cmd_rsync = subprocess.run(
+        ["rsync"] + rsync_args + [src, dest], stderr=subprocess.PIPE
+    )
+    rsync_stderr = str(cmd_rsync.stderr, "utf-8", "ignore").strip()
     return rsync_stderr
 
 
