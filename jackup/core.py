@@ -38,7 +38,7 @@ def _list_profile(config: Config, profile_name: str):
 
     table = [["source", "destination"]]
     for task in prof.tasks(config, profile_name):
-        table.append([task.source, task.destination])
+        table.append([task.src, task.dest])
 
     return table
 
@@ -139,13 +139,13 @@ def _sync_task(config: Config, task: Task) -> bool:
     """
     Tries to synchronize a task.
     """
-    log.info(f"syncing {task.source} -> {task.destination}")
+    log.info(f"syncing {task.src} -> {task.dest}")
 
     # TODO: also pull in ignores from profile file
-    excludes = _read_ignore_file(config, task.source)
+    excludes = _read_ignore_file(config, task.src)
 
-    source = os.path.expanduser(task.source)
-    destination = os.path.expanduser(task.destination)
+    source = os.path.expanduser(task.src)
+    destination = os.path.expanduser(task.dest)
     rsync_stderr = _rsync(config, source, destination, excludes, task.args)
 
     if rsync_stderr:
