@@ -29,16 +29,17 @@ def _list_available_profiles(config: Config) -> List[Tuple[str, str]]:
 
 def _list_profile(config: Config, profile_name: str):
     """
-    List all tasks in PROFILE, their source, destination, and order.
+    List all tasks in PROFILE, their source, destination.
     The listing is sorted by order of synchronization.
     """
     if not prof.exists(config, profile_name):
         log.warning(f"the profile '{profile_name}' does not exist")
         return
 
-    table = [["source", "destination"]]
+    table = [["source", "destination", "args"]]
     for task in prof.tasks(config, profile_name):
-        table.append([task.src, task.dest])
+        args = " ".join(task.args)
+        table.append([task.src, task.dest, args])
 
     return table
 
