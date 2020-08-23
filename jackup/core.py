@@ -8,14 +8,13 @@ from typing import List, Tuple, Optional
 
 from jackup.profile import Profile
 from jackup.task import Task
-from jackup.config import Config
 
 import jackup.profile as prof
 import jackup.logging as log
 import jackup.tableprinter as tp
 
 
-def _list_available_profiles(config: Config) -> List[Tuple[str, str]]:
+def _list_available_profiles(config) -> List[Tuple[str, str]]:
     """
     List all available profiles on the system.
     """
@@ -27,7 +26,7 @@ def _list_available_profiles(config: Config) -> List[Tuple[str, str]]:
     return profiles
 
 
-def _list_profile(config: Config, profile_name: str):
+def _list_profile(config, profile_name: str):
     """
     List all tasks in PROFILE, their source, destination.
     The listing is sorted by order of synchronization.
@@ -44,7 +43,7 @@ def _list_profile(config: Config, profile_name: str):
     return table
 
 
-def list(config: Config, profiles: List[str]) -> None:
+def list(config, profiles: List[str]) -> None:
     """
     If given a PROFILE, list all tasks in that profile, otherwise list all
     available profiles on the system.
@@ -69,11 +68,7 @@ def list(config: Config, profiles: List[str]) -> None:
 
 # TODO: move to own synchronizer backend
 def _rsync(
-    config: Config,
-    src: str,
-    dest: str,
-    excludes: List[str] = [],
-    extraargs: List[str] = [],
+    config, src: str, dest: str, excludes: List[str] = [], extraargs: List[str] = [],
 ) -> str:
     """
     Wrapper for =rsync=, handles syncing SRC to DEST.
@@ -136,7 +131,7 @@ def _read_ignore_file(config: Config, folder: str) -> List[str]:
     return excludes
 
 
-def _sync_task(config: Config, task: Task) -> bool:
+def _sync_task(config, task: Task) -> bool:
     """
     Tries to synchronize a task.
     """
@@ -156,7 +151,7 @@ def _sync_task(config: Config, task: Task) -> bool:
         return True
 
 
-def _sync_profile(config: Config, profile_name: str) -> Tuple[int, int]:
+def _sync_profile(config, profile_name: str) -> Tuple[int, int]:
     """
     Tries to synchronize all tasks in PROFILE.
     Returns a tuple of successful tasks, and total tasks.
@@ -174,7 +169,7 @@ def _sync_profile(config: Config, profile_name: str) -> Tuple[int, int]:
 
 
 # TODO: extract sync-logic, where rsync is a backend, maybe also support rclone, restic, etc.
-def _sync(config: Config, profile: str) -> bool:
+def _sync(config, profile: str) -> bool:
     if not prof.exists(config, profile):
         log.error(f"the profile '{profile}' does not exist")
         return False
@@ -211,7 +206,7 @@ def _sync(config: Config, profile: str) -> bool:
         prof.unlock(config, profile)
 
 
-def sync(config: Config, profiles: List[str], quiet: bool, verbose: bool) -> None:
+def sync(config, profiles: List[str], quiet: bool, verbose: bool) -> None:
     """
     Synchronizes all tasks in PROFILE.
     """

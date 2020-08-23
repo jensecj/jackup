@@ -5,7 +5,7 @@ import pkg_resources
 from pathlib import Path
 
 from jackup.core import list, sync
-from jackup.config import Config
+from jackup.config import CONFIG
 
 
 def main():
@@ -39,16 +39,7 @@ def main():
         parser.print_help()
         return
 
-    jackup_dir = os.path.expanduser("~/.config/jackup/")
-    jackup_log = os.path.join(jackup_dir, "log")  # TODO: log to /var/log?
-
-    # create jackup directory if it does not exist
-    if not os.path.isdir(jackup_dir):
-        os.mkdir(jackup_dir)
-
-    config = Config(jackup_path=jackup_dir, log_path=jackup_log)
-
     # delegate to relevant functions based on parsed args
     args = vars(args)
     func = args.pop("func")
-    func(config, **args)
+    func(CONFIG, **args)

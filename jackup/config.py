@@ -1,6 +1,12 @@
-from dataclasses import dataclass
+import os
+import pkg_resources
 
-@dataclass(frozen=True)
-class Config:
-    jackup_path: str
-    log_path: str
+from types import SimpleNamespace as Namespace
+
+
+SEMVER = pkg_resources.require("jackup")[0].version
+
+config_path = os.path.expanduser("~/.config/jackup/")
+log_path = os.path.join(config_path, "jackup.log")  # TODO: log to /var/log?
+
+CONFIG = Namespace(**{"config_path": config_path, "log_path": log_path})
