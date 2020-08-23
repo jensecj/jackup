@@ -174,6 +174,43 @@ def _sync_profile(config: Config, profile_name: str) -> Tuple[int, int]:
 
 
 # TODO: extract sync-logic, where rsync is a backend, maybe also support rclone, restic, etc.
+def _sync(config: Config, profile: str) -> bool:
+    if not prof.exists(config, profile):
+        log.error(f"the profile '{profile}' does not exist")
+        return False
+
+    if not prof.lock(config, profile):
+        log.error(f"sync is already running for {profile}")
+        return False
+
+    try:
+        start_time = datetime.now()
+        log.info(f"starting sync at {start_time}")
+        (completed_tasks, total_tasks) = _sync_profile(config, profile)
+        end_time = datetime.now()
+
+        # report ratio of sucessful tasks to the total number of tasks,
+        # color coded, based on success-rate of the synchronization
+        task_ratio = f"{completed_tasks}/{total_tasks}"
+
+        if completed_tasks == 0 and total_tasks > 0:
+            task_ratio = log.RED(task_ratio)
+        elif completed_tasks < total_tasks:
+            task_ratio = log.YELLOW(task_ratio)
+        else:
+            task_ratio = log.GREEN(task_ratio)
+
+        log.info(f"synchronized {task_ratio} tasks")
+        log.info(f"finished syncing {profile}")
+        log.info(f"sync ended at {end_time}, took {end_time - start_time}")
+
+        return completed_tasks == total_tasks
+    except KeyboardInterrupt:
+        log.warning("\n\nSynchronization interrupted by user")
+    finally:
+        prof.unlock(config, profile)
+
+
 def sync(config: Config, profiles: List[str], quiet: bool, verbose: bool) -> None:
     """
     Synchronizes all tasks in PROFILE.
@@ -186,37 +223,13 @@ def sync(config: Config, profiles: List[str], quiet: bool, verbose: bool) -> Non
         # SET LOG LEVEL WARNINIG (quiet)
         print("quiet")
 
+    failures = 0
     for profile in profiles:
-        if not prof.exists(config, profile):
-            log.error(f"the profile '{profile}' does not exist")
-            return
+        if not _sync(config, profile):
+            log.warning(f"{profile} failed to sync")
+            failures += 1
 
-        if not prof.lock(config, profile):
-            log.error(f"sync is already running for {profile}")
-            return
-
-        try:
-            start_time = datetime.now()
-            log.info(f"starting sync at {start_time}")
-            (completed_tasks, total_tasks) = _sync_profile(config, profile)
-
-            # report ratio of sucessful tasks to the total number of tasks,
-            # color coded, based on success-rate of the synchronization
-            task_ratio = f"{completed_tasks}/{total_tasks}"
-
-            if completed_tasks == 0 and total_tasks > 0:
-                task_ratio = log.RED(task_ratio)
-            elif completed_tasks < total_tasks:
-                task_ratio = log.YELLOW(task_ratio)
-            else:
-                task_ratio = log.GREEN(task_ratio)
-
-            end_time = datetime.now()
-
-            log.info(f"synchronized {task_ratio} tasks")
-            log.info(f"finished syncing {profile}")
-            log.info(f"sync ended at {end_time}, took {end_time - start_time}")
-        except KeyboardInterrupt:
-            log.warning("\n\nSynchronization interrupted by user")
-        finally:
-            prof.unlock(config, profile)
+    if failures == 0:
+        log.success("all profiles synchronized successfully")
+    else:
+        log.warning(f"{failures} profile(s) failed to sync all tasks")
