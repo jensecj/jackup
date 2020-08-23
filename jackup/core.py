@@ -13,93 +13,6 @@ import jackup.profile as prof
 import jackup.logging as log
 import jackup.tableprinter as tp
 
-def _add(config: Config, profile: Profile, task: Task) -> Optional[Profile]:
-    if task.name in [ t.name for t in profile.tasks ]:
-        log.warning('A task with that name already exists')
-        log.info('Use `jackup edit <profile> <name>` to change settings for this task')
-        return None
-
-    # if we add a new task without an order, place it last in the queue of
-    # tasks to synchronize by giving it the latest order
-    if task.order is None:
-        task = Task(task.name,
-                    task.source,
-                    task.destination,
-                    prof.max_order(profile.tasks) + 1)
-
-    if task.order in prof.orders(profile.tasks):
-        log.warning("That ordering is already in use")
-        log.info('Use `jackup list <profile>` to check ordering of tasks')
-        return None
-
-    profile = prof.add(profile, task)
-    return profile
-
-def add(config: Config, profile_name: str, task_name: str, source: str, destination: str, order: int) -> None:
-    """
-    Add a new task with NAME, to PROFILE.
-    SOURCE/DESTINATION can be either local files/folders, or remote locations,
-    accessible through ssh.
-    ORDER is used to determine the order of synchronization, lower values
-    get synchronized first.
-    """
-    profile = prof.get_profile_by_name(config, profile_name)
-    task = Task(task_name, source, destination, order)
-
-    new_profile = _add(config, profile, task)
-
-    if new_profile is not None:
-        prof.write(config, new_profile.name, prof.toJSON(new_profile))
-        log.info("added " + new_profile.name + '/' + task.name)
-
-# TODO: extract pure helper function _edit(Config, Profile, Task) -> Profile
-def edit(config: Config, profile_name: str, task_name: str, source: str, destination: str, order: int) -> None:
-    """
-    Edit TASK, in PROFILE.
-    Allows changing values of a task after creation.
-    """
-    if not prof.exists(config, profile_name):
-        log.warning('That profile does not exist')
-        return
-
-    profile = prof.read(config, profile_name)
-
-    if not task_name in profile:
-        log.warning(profile_name + ' does not have a task named ' + task_name)
-        return
-
-    if source:
-        profile[task_name]['source'] = source
-
-    if destination:
-        profile[task_name]['destination'] = destination
-
-    if order:
-        profile[task_name]['order'] = order
-
-    prof.write(config, profile_name, profile)
-
-    log.info("edited " + profile_name + '/' + task_name)
-
-def remove(config: Config, profile_name: str, task_name: str) -> None:
-    """
-    Remove an existing task with NAME, from PROFILE.
-    """
-    if not prof.exists(config, profile_name):
-        log.warning('That profile does not exist')
-        return
-
-    profile = prof.read(config, profile_name)
-
-    if not task_name in profile:
-        log.warning(profile_name + ' does not have a task named ' + task_name)
-        return
-
-    profile.pop(task_name)
-
-    prof.write(config, profile_name, profile)
-
-    log.info("Removed " + profile_name + '/' + task_name)
 
 def _list_available_profiles(config: Config) -> List[Tuple[str, str]]:
     """
@@ -108,10 +21,10 @@ def _list_available_profiles(config: Config) -> List[Tuple[str, str]]:
     profiles = []
     for profile_name in prof.profiles(config):
         number_of_tasks = len(prof.tasks(config, profile_name))
-
         profiles.append((profile_name, str(number_of_tasks)))
 
     return profiles
+
 
 def _list_profile(config: Config, profile_name: str):
     """
