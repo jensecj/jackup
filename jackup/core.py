@@ -111,7 +111,11 @@ def _rsync(config, src: str, dest: str, args: List[str] = []) -> str:
 
     # call the `rsync` tool, capture errors and return them if any.
     cmd_rsync = subprocess.run(
-        ["rsync"] + rsync_args + [src, dest], stderr=subprocess.PIPE
+        ["rsync"]
+        + rsync_args
+        + ["--"]  # make sure we dont expand filenames into args
+        + [src, dest],
+        stderr=subprocess.PIPE,
     )
     rsync_stderr = str(cmd_rsync.stderr, "utf-8", "ignore").strip()
     return rsync_stderr
