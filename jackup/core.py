@@ -201,8 +201,6 @@ def _sync(config, profile: str) -> bool:
         log.info(f"sync ended at {end_time}, took {end_time - start_time}")
 
         return completed_tasks == total_tasks
-    except KeyboardInterrupt:
-        log.warning("\n\nSynchronization interrupted by user")
     finally:
         prof.unlock(config, profile)
 
@@ -217,14 +215,17 @@ def sync(config, profiles: List[str], quiet: bool, verbose: bool) -> None:
     if quiet:
         log.set_level(log.LEVEL.WARNING)
 
-    failures = 0
-    for profile in profiles:
-        if not _sync(config, profile):
-            log.warning(f"{profile} failed to sync")
-            failures += 1
+    try:
+        failures = 0
+        for profile in profiles:
+            if not _sync(config, profile):
+                log.warning(f"{profile} failed to sync")
+                failures += 1
 
-    if failures == 0:
-        log.success("all profiles synchronized successfully")
-    else:
-        log.warning(f"{failures} profile(s) failed to sync all tasks")
-        sys.exit(failures)
+        if failures == 0:
+            log.success("all profiles synchronized successfully")
+        else:
+            log.warning(f"{failures} profile(s) failed to sync all tasks")
+            sys.exit(failures)
+    except KeyboardInterrupt:
+        log.warning("\n\nSynchronization interrupted by user")
