@@ -85,6 +85,7 @@ def _rsync(config, src: str, dest: str, args: List[str] = []) -> str:
         # print number of files, bytes sent/recieved, throughput, and total size
         "--info=BACKUP,COPY,DEL,FLIST2,PROGRESS2,REMOVE,MISC2,STATS1,SYMSAFE",
         "--no-motd",
+        "--compress",  # compress files during transfer
         # "--timeout=30",
         "--partial",
         "--progress",
@@ -102,7 +103,6 @@ def _rsync(config, src: str, dest: str, args: List[str] = []) -> str:
         "--xattrs",  # preserve extended attributes
         "--acls",  # preserve ACLS
         # "--copy-links",  # transform links into the referent dirs/files
-        "--compress",  # compress files during transfer
         # "--dry-run",
     ]
 
@@ -161,10 +161,10 @@ def _sync_profile(config, profile: str) -> Tuple[int, int]:
     completed = 0
     for task in prof.tasks(config, profile):
         if _sync_task(config, task):
-            log.success(f"finished syncing {profile}/{task.name}\n")
+            log.success(f"finished syncing {profile}/{task.name}")
             completed += 1
         else:
-            log.error(f"failed syncing {profile}/{task.name}\n")
+            log.error(f"failed syncing {profile}/{task.name}")
 
     return (completed, num_tasks)
 
@@ -181,7 +181,7 @@ def _sync(config, profile: str) -> bool:
 
     try:
         start_time = datetime.now()
-        log.info(f"starting sync at {start_time}")
+        log.debug(f"starting sync at {start_time}")
         (completed_tasks, total_tasks) = _sync_profile(config, profile)
         end_time = datetime.now()
 
@@ -196,9 +196,8 @@ def _sync(config, profile: str) -> bool:
         else:
             task_ratio = log.GREEN(task_ratio)
 
-        log.info(f"synchronized {task_ratio} tasks")
-        log.info(f"finished syncing {profile}")
-        log.info(f"sync ended at {end_time}, took {end_time - start_time}")
+        log.info(f"synchronized {task_ratio} tasks from '{profile}'")
+        log.debug(f"sync ended at {end_time}, took {end_time - start_time}")
 
         return completed_tasks == total_tasks
     finally:
