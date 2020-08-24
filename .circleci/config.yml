@@ -3,10 +3,13 @@ jobs:
   build:
     working_directory: ~/jackup
     docker:
-      - image: circleci/python:3.8.1
+      - image: circleci/python:3.8
+    resource_class: small
     steps:
       - checkout
       - run:
           command: |
-            pip install -r requirements.txt
+            pip install --upgrade pip
+            pip install --upgrade -r requirements-dev.txt -r requirements.txt
+            pip install .
             pytest
