@@ -58,10 +58,21 @@ def list(config, profiles: List[str]) -> None:
     else:
         log.info("profiles:")
         for profile in _list_available_profiles(config):
-            print("* %s [%s]" % profile)
+            print("- %s [%s]" % profile)
 
 
+def _read_ignore_file(config, folder: str) -> List[str]:
+    """
+    Reads the .jackupignore file, if any, from a folder
+    """
+    excludes = []
+    ignore_file = os.path.join(folder, ".jackupignore")
+    if os.path.isfile(ignore_file):
+        with open(ignore_file, "r") as ignore_db:
+            for line in ignore_db:
+                excludes.append(line.strip())
 
+    return excludes
 
 
 # TODO: move to own synchronizer backend
@@ -104,20 +115,6 @@ def _rsync(config, src: str, dest: str, args: List[str] = []) -> str:
     )
     rsync_stderr = str(cmd_rsync.stderr, "utf-8", "ignore").strip()
     return rsync_stderr
-
-
-def _read_ignore_file(config: Config, folder: str) -> List[str]:
-    """
-    Reads the .jackupignore file, if any, from a folder
-    """
-    excludes = []
-    ignore_file = os.path.join(folder, ".jackupignore")
-    if os.path.isfile(ignore_file):
-        with open(ignore_file, "r") as ignore_db:
-            for line in ignore_db:
-                excludes.append(line.strip())
-
-    return excludes
 
 
 def _sync_task(config, task) -> bool:

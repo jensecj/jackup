@@ -15,7 +15,7 @@ version = open("__version__.py", "r").read().strip()
 setup(
     name="jackup",
     version=version,
-    description="Simple synchronization",
+    description="Simple backup and synchronization via borg and rsync",
     url="http://github.com/jensecj/jackup",
     author="Jens Christian Jensen",
     author_email="jensecj@gmail.com",

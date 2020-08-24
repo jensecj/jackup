@@ -9,7 +9,7 @@ the network.
 Given a set of profiles, which contain =source, destination= pairs (and optional extras),
 jackup synchronizes them when asked to.
 
-A profile is just a =.json= file:
+A profile is just a =.json= file.
 
 =~/.config/jackup/pull_phone.json=:
 #+begin_src json
@@ -30,7 +30,7 @@ A profile is just a =.json= file:
 #+end_src
 Now when I run =jackup sync pull_phone= jackup will try to sync all the tasks in order.
 
-In the case above =phone:= is resolved from your ssh-config by =rsync=:
+In the case above =phone:= is resolved from your ssh-config by =rsync=.
 
 =~/.ssh/config=:
 #+begin_src conf

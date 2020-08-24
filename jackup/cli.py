@@ -21,10 +21,10 @@ def main():
     list_parser = subparsers.add_parser(
         "list", aliases=["ls"], help="List tasks in profiles"
     )
-    list_parser.add_argument("profiles", nargs="*", help="Profiles to list tasks of")
+    list_parser.add_argument("profiles", nargs="*", help="Profiles with tasks to list")
     list_parser.set_defaults(func=list)
 
-    sync_parser = subparsers.add_parser("sync", help="Synchronizes a profile")
+    sync_parser = subparsers.add_parser("sync", help="Synchronize profiles")
     sync_parser.add_argument("profiles", nargs="*", help="Profiles with tasks to sync")
     sync_parser.add_argument("-q", "--quiet", action="store_true", help="less verbose")
     sync_parser.add_argument(
