@@ -72,10 +72,7 @@ def _read_ignore_file(config, folder: str) -> List[str]:
 
 
 # TODO: move to own synchronizer backend
-def _rsync(config, src: str, dest: str, args: List[str] = []) -> str:
-    """
-    Wrapper for =rsync=, handles syncing SRC to DEST.
-    """
+def _rsync(config, src: str, dest: str, args: List[str] = []) -> bool:
     rsync_args = [
         "--log-file=" + config.log_path,
         "--no-motd",
@@ -107,20 +104,14 @@ def _rsync(config, src: str, dest: str, args: List[str] = []) -> str:
     log.debug(rsync_cmd)
 
     # capture errors and return them if any.
-    rsync_stderr = ""
-    with subprocess.Popen(
-        rsync_cmd,
-        # stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True,
-    ) as p:
-        return_code = p.wait()
-        if return_code:
-            raise subprocess.CalledProcessError(return_code, cmd)
+    with subprocess.Popen(rsync_cmd, stderr=subprocess.PIPE, text=True,) as p:
+        if return_code := p.wait():
+            log.error(f"rsync failed to sync, returned {return_code}")
 
-        rsync_stderr = p.stderr.read().strip()
+        if rsync_stderr := p.stderr.read().strip():
+            log.error(rsync_stderr)
 
-    return rsync_stderr
+        return return_code == 0
 
 
 def _sync_rsync(config, task) -> bool:
@@ -129,14 +120,20 @@ def _sync_rsync(config, task) -> bool:
 
     # TODO: validate paths, error on connection error, unmounted, not-found
     if not os.path.exists(source):
-        return f"{source} does not exist"
+        log.error(f"{source} does not exist")
+        return False
+
     if not os.path.exists(destination):
-        return f"{destination} does not exist"
+        log.error(f"{destination} does not exist")
+        return False
 
     if task.src_mounted and not os.path.ismount(source):
-        return f"{source} is not mounted"
+        log.error(f"{source} is not mounted")
+        return False
+
     if task.dest_mounted and not os.path.ismount(destination):
-        return f"{destination} is not mounted"
+        log.error(f"{destination} is not mounted")
+        return False
 
     # TODO: translate paths, from uuid, network-shares, etc.
 
@@ -163,12 +160,7 @@ def _sync_task(config, task) -> bool:
     log.info(f"● syncing {task.src} -> {task.dest}")
 
     # TODO: dispatch on type of sync: borg, rsync, rclone, etc.
-
-    if rsync_stderr := _sync_rsync(config, task):
-        log.error(rsync_stderr)
-        return False
-    else:
-        return True
+    return _sync_rsync(config, task)
 
 
 def _sync_profile(config, profile: str) -> Tuple[int, int]:
@@ -180,8 +172,8 @@ def _sync_profile(config, profile: str) -> Tuple[int, int]:
     completed = 0
     for task in prof.tasks(config, profile):
         if _sync_task(config, task):
-            log.success(f"finished syncing {profile}/{task.name}")
             completed += 1
+            log.success(f"finished syncing {profile}/{task.name}")
         else:
             log.error(f"failed to sync {profile}/{task.name}")
 
@@ -220,9 +212,7 @@ def sync(config, profiles: List[str], quiet: bool, verbose: bool) -> None:
         log.set_level(log.LEVEL.WARNING)
 
     try:
-        results = []
-        for profile in profiles:
-            results += [_sync(config, profile)]
+        results = [_sync(config, profile) for profile in profiles]
 
         log.info("")
         for r in results:
