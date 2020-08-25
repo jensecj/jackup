@@ -18,3 +18,6 @@ pack:
  python -m pip install --upgrade -r requirements.txt --target {{build_dir}}
  python -m pip install --upgrade --target {{build_dir}} dist/jackup*.whl
  python -m zipapp {{build_dir}} -c -m "jackup.cli:main" -p "/usr/bin/env python3" -o dist/jackup
+
+pex:
+ pex -r requirements-pex.txt -m "jackup.cli:main" -o dist/jackup.pex
