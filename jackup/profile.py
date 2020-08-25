@@ -29,11 +29,16 @@ def load(config, profile: str):
     """
     Reads the content of the profile-file from disk, and returns it as a Profile.
     """
-    default = {"exclude": [], "args": []}
+    default_task = {
+        "exclude": [],
+        "args": [],
+        "src_mounted": False,
+        "dest_mounted": False,
+    }
 
     profile_file = path_to_profile(config, profile)
     with open(profile_file, "r") as db:
-        tasks = json.load(db, object_hook=lambda d: Namespace(**{**default, **d}))
+        tasks = json.load(db, object_hook=lambda d: Namespace(**{**default_task, **d}))
 
     return tasks
 
