@@ -28,10 +28,6 @@ def _list_profile(config, profile: str):
     List all tasks in PROFILE, their source, destination.
     The listing is sorted by order of synchronization.
     """
-    if not prof.exists(config, profile):
-        log.warning(f"the profile '{profile}' does not exist")
-        return
-
     table = [["source", "destination", "args"]]
     for task in prof.tasks(config, profile):
         args = " ".join(task.args)
