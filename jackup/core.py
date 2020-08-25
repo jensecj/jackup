@@ -78,8 +78,6 @@ def _rsync(config, src: str, dest: str, args: List[str] = []) -> str:
     """
     rsync_args = [
         "--log-file=" + config.log_path,
-        # print number of files, bytes sent/recieved, throughput, and total size
-        "--info=BACKUP,COPY,DEL,FLIST2,PROGRESS2,REMOVE,MISC2,STATS1,SYMSAFE",
         "--no-motd",
         "--compress",  # compress files during transfer
         # "--timeout=30",
@@ -103,7 +101,10 @@ def _rsync(config, src: str, dest: str, args: List[str] = []) -> str:
     ]
 
     rsync_args += args
-    log.debug(f"rsync {rsync_args} {src} {dest}")
+
+    # make sure we dont expand filenames into args
+    rsync_cmd = ["rsync"] + rsync_args + ["--"] + [src] + [dest]
+    log.debug(rsync_cmd)
 
     # call the `rsync` tool, capture errors and return them if any.
     cmd_rsync = subprocess.run(
@@ -137,7 +138,9 @@ def _sync_task(config, task) -> bool:
     if log.LOG_LEVEL < log.LEVEL.INFO:
         args += ["--quiet"]
     elif log.LOG_LEVEL > log.LEVEL.INFO:
-        args += ["--verbose"]
+        # print number of files, bytes sent/recieved, throughput, and total size
+        args += ["--info=BACKUP,COPY,DEL,FLIST2,PROGRESS2,REMOVE,MISC2,STATS1,SYMSAFE"]
+        # args += ["--verbose"]
 
     rsync_stderr = _rsync(config, source, destination, args)
 
