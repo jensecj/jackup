@@ -128,11 +128,15 @@ def _sync_rsync(config, task) -> bool:
     destination = os.path.expanduser(task.dest)
 
     # TODO: validate paths, error on connection error, unmounted, not-found
-    if task.src_mounted and not os.path.ismount(task.src):
-        return f"{task.src} is not mounted"
+    if not os.path.exists(source):
+        return f"{source} does not exist"
+    if not os.path.exists(destination):
+        return f"{destination} does not exist"
 
-    if task.dest_mounted and not os.path.ismount(task.dest):
-        return f"{task.dest} is not mounted"
+    if task.src_mounted and not os.path.ismount(source):
+        return f"{source} is not mounted"
+    if task.dest_mounted and not os.path.ismount(destination):
+        return f"{destination} is not mounted"
 
     # TODO: translate paths, from uuid, network-shares, etc.
 
