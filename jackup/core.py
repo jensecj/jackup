@@ -106,31 +106,40 @@ def _rsync(config, src: str, dest: str, args: List[str] = []) -> str:
     rsync_cmd = ["rsync"] + rsync_args + ["--"] + [src] + [dest]
     log.debug(rsync_cmd)
 
-    # call the `rsync` tool, capture errors and return them if any.
-    cmd_rsync = subprocess.run(
-        ["rsync"]
-        + rsync_args
-        + ["--"]  # make sure we dont expand filenames into args
-        + [src, dest],
+    # capture errors and return them if any.
+    rsync_stderr = ""
+    with subprocess.Popen(
+        rsync_cmd,
+        # stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
-    )
-    rsync_stderr = str(cmd_rsync.stderr, "utf-8", "ignore").strip()
+        text=True,
+    ) as p:
+        return_code = p.wait()
+        if return_code:
+            raise subprocess.CalledProcessError(return_code, cmd)
+
+        rsync_stderr = p.stderr.read().strip()
+
     return rsync_stderr
 
 
-def _sync_task(config, task) -> bool:
-    """
-    Tries to synchronize a task.
-    """
-    log.info(f"syncing {task.src} -> {task.dest}")
-
-    # TODO: also ignore directories which contain a beacon-file (e.g. .rsyncignore)
-    excludes = _read_ignore_file(config, task.src)
-
+def _sync_rsync(config, task) -> bool:
     source = os.path.expanduser(task.src)
     destination = os.path.expanduser(task.dest)
 
-    args = task.args
+    # TODO: validate paths, error on connection error, unmounted, not-found
+    if task.src_mounted and not os.path.ismount(task.src):
+        return f"{task.src} is not mounted"
+
+    if task.dest_mounted and not os.path.ismount(task.dest):
+        return f"{task.dest} is not mounted"
+
+    # TODO: translate paths, from uuid, network-shares, etc.
+
+    args = task.args[:]  # copy list so we dont keep appending args
+
+    # TODO: also ignore directories which contain a beacon-file (e.g. .rsyncignore)
+    excludes = _read_ignore_file(config, source)
 
     for ex in excludes:
         args += ["--exclude=" + ex]
@@ -142,9 +151,16 @@ def _sync_task(config, task) -> bool:
         args += ["--info=BACKUP,COPY,DEL,FLIST2,PROGRESS2,REMOVE,MISC2,STATS1,SYMSAFE"]
         # args += ["--verbose"]
 
-    rsync_stderr = _rsync(config, source, destination, args)
+    return _rsync(config, source, destination, args)
 
-    if rsync_stderr:
+
+# TODO: extract sync-logic, where rsync is a backend, maybe also support rclone, restic, etc.
+def _sync_task(config, task) -> bool:
+    log.info(f"● syncing {task.src} -> {task.dest}")
+
+    # TODO: dispatch on type of sync: borg, rsync, rclone, etc.
+
+    if rsync_stderr := _sync_rsync(config, task):
         log.error(rsync_stderr)
         return False
     else:
@@ -163,12 +179,11 @@ def _sync_profile(config, profile: str) -> Tuple[int, int]:
             log.success(f"finished syncing {profile}/{task.name}")
             completed += 1
         else:
-            log.error(f"failed syncing {profile}/{task.name}")
+            log.error(f"failed to sync {profile}/{task.name}")
 
     return (completed, num_tasks)
 
 
-# TODO: extract sync-logic, where rsync is a backend, maybe also support rclone, restic, etc.
 def _sync(config, profile: str) -> bool:
     if not prof.exists(config, profile):
         log.error(f"the profile '{profile}' does not exist")
