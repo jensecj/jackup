@@ -183,22 +183,9 @@ def _sync(config, profile: str) -> bool:
         log.debug(f"starting sync at {start_time}")
         (completed_tasks, total_tasks) = _sync_profile(config, profile)
         end_time = datetime.now()
-
-        # report ratio of sucessful tasks to the total number of tasks,
-        # color coded, based on success-rate of the synchronization
-        task_ratio = f"{completed_tasks}/{total_tasks}"
-
-        if completed_tasks == 0 and total_tasks > 0:
-            task_ratio = log.RED(task_ratio)
-        elif completed_tasks < total_tasks:
-            task_ratio = log.YELLOW(task_ratio)
-        else:
-            task_ratio = log.GREEN(task_ratio)
-
-        log.info(f"synchronized {task_ratio} tasks from '{profile}'")
         log.debug(f"sync ended at {end_time}, took {end_time - start_time}")
 
-        return completed_tasks == total_tasks
+        return profile, completed_tasks, total_tasks
     finally:
         prof.unlock(config, profile)
 
@@ -214,16 +201,25 @@ def sync(config, profiles: List[str], quiet: bool, verbose: bool) -> None:
         log.set_level(log.LEVEL.WARNING)
 
     try:
-        failures = 0
+        results = []
         for profile in profiles:
-            if not _sync(config, profile):
-                log.warning(f"{profile} failed to sync")
-                failures += 1
+            results += [_sync(config, profile)]
 
-        if failures == 0:
-            log.success("all profiles synchronized successfully")
-        else:
-            log.warning(f"{failures} profile(s) failed to sync all tasks")
-            sys.exit(failures)
+        log.info("")
+        for r in results:
+            profile, completed_tasks, total_tasks = r
+
+            # report ratio of sucessful tasks to the total number of tasks,
+            # color coded, based on success-rate of the synchronization
+            task_ratio = f"{completed_tasks}/{total_tasks}"
+
+            if completed_tasks == 0 and total_tasks > 0:
+                task_ratio = log.RED(task_ratio)
+            elif completed_tasks < total_tasks:
+                task_ratio = log.YELLOW(task_ratio)
+            else:
+                task_ratio = log.GREEN(task_ratio)
+
+            log.info(f"{profile} synced {task_ratio} tasks")
     except KeyboardInterrupt:
         log.warning("\n\nSynchronization interrupted by user")
