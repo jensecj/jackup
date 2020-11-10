@@ -7,24 +7,31 @@ import logging
 from datetime import datetime
 from typing import List, Tuple, Optional
 
-import jackup.profile as prof
-import jackup.tableprinter as tp
+from . import profile as prof
+from . import utils
 
 log = logging.getLogger(__name__)
 
-def _list_available_profiles(config) -> List[Tuple[str, str]]:
-    """
-    List all available profiles on the system.
-    """
+
+def _get_available_profiles(config) -> List[Tuple[str, str]]:
     profiles = []
     for profile in prof.profiles(config):
         number_of_tasks = len(prof.tasks(config, profile))
-        profiles.append((profile, str(number_of_tasks)))
+        profiles.append((profile, number_of_tasks))
 
     return profiles
 
 
-def _list_profile(config, profile: str):
+def _print_available_profiles(config) -> None:
+    """
+    List all available profiles on the system.
+    """
+    log.info("profiles:")
+    for profile in _get_available_profiles(config):
+        log.info("- %s [%s]" % profile)
+
+
+def _print_profile(config, profile: str) -> None:
     """
     List all tasks in PROFILE, their source, destination.
     The listing is sorted by order of synchronization.
@@ -34,7 +41,8 @@ def _list_profile(config, profile: str):
         args = " ".join(task.args)
         table.append([task.src, task.dest, args])
 
-    return table
+    log.info(f"profile: {profile}")
+    utils.print_table(table)
 
 
 def list(config, profiles: List[str]) -> None:
@@ -42,20 +50,17 @@ def list(config, profiles: List[str]) -> None:
     If given a PROFILE, list all tasks in that profile, otherwise list all
     available profiles on the system.
     """
-    if profiles:
-        for profile in profiles:
-            if not prof.exists(config, profile):
-                log.error(f"the profile '{profile}' does not exist")
-                continue
+    if not profiles:
+        _print_available_profiles(config)
+        return
 
-            log.info(f"profile: {profile}")
-            if profile:
-                tp.print_table(_list_profile(config, profile))
-                print()
-    else:
-        log.info("profiles:")
-        for profile in _list_available_profiles(config):
-            print("- %s [%s]" % profile)
+    for profile in profiles:
+        if not prof.exists(config, profile):
+            log.error(f"the profile '{profile}' does not exist")
+            continue
+
+        if profile:
+            _print_profile(config, profile)
 
 
 def _read_ignore_file(config, folder: str) -> List[str]:
@@ -219,13 +224,6 @@ def sync(config, profiles: List[str]) -> None:
             # report ratio of sucessful tasks to the total number of tasks,
             # color coded, based on success-rate of the synchronization
             task_ratio = f"{completed_tasks}/{total_tasks}"
-
-            if completed_tasks == 0 and total_tasks > 0:
-                task_ratio = log.RED(task_ratio)
-            elif completed_tasks < total_tasks:
-                task_ratio = log.YELLOW(task_ratio)
-            else:
-                task_ratio = log.GREEN(task_ratio)
 
             log.info(f"{profile} synced {task_ratio} tasks")
     except KeyboardInterrupt:
