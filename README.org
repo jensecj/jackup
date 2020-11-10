@@ -30,7 +30,7 @@ A profile is just a =.json= file.
 #+end_src
 Now when I run =jackup sync pull_phone= jackup will try to sync all the tasks in order.
 
-In the case above =phone:= is resolved from your ssh-config by =rsync=.
+In the case above =phone:= is resolved from ssh-config by =rsync=.
 
 =~/.ssh/config=:
 #+begin_src conf
@@ -83,7 +83,7 @@ order of appearance in the profiles.
 If either source or destination is unavailable (no connection, unmounted, non-existant, etc.)
 jackup will tell you.
 
-You can list all profiles on the system:
+You can list all profiles on the system, and how many tasks they have:
 #+begin_src bash
 $ jackup ls
 #+end_src
@@ -117,8 +117,7 @@ python -m venv venv
 
 install development dependencies
 #+begin_src bash
-pip install --upgrade pip
-pip install --upgrade -r requirements-dev.txt
+pip install --upgrade -r requirements-dev.txt -r requirements.txt
 #+end_src
 
 build standalone file you run (e.g as a symlink to =/usr/local/bin/jackup=)
