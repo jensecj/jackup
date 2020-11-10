@@ -15,11 +15,11 @@ version = open("__version__.py", "r").read().strip()
 setup(
     name="jackup",
     version=version,
-    description="Simple backup and synchronization via borg and rsync",
+    description="Moves files around",
     url="http://github.com/jensecj/jackup",
-    author="Jens Christian Jensen",
+    author="Jens C. Jensen",
     author_email="jensecj@gmail.com",
     packages=find_packages(),
-    entry_points={"console_scripts": ["jackup = jackup.cli:main"],},
+    entry_points={"console_scripts": ["jackup = jackup.cli:main"]},
     zip_safe=False,
 )

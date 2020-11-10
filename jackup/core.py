@@ -105,7 +105,7 @@ def _rsync(config, src: str, dest: str, args: List[str] = []) -> bool:
     log.debug(rsync_cmd)
 
     # capture errors and return them if any.
-    with subprocess.Popen(rsync_cmd, stderr=subprocess.PIPE, text=True,) as p:
+    with subprocess.Popen(rsync_cmd, stderr=subprocess.PIPE, text=True) as p:
         if return_code := p.wait():
             log.error(f"rsync failed to sync, returned {return_code}")
 
@@ -146,6 +146,7 @@ def _sync_rsync(config, task) -> bool:
     for ex in excludes:
         args += ["--exclude=" + ex]
 
+    # TODO: fix verbosity
     if log.LOG_LEVEL < log.LEVEL.INFO:
         args += ["--quiet"]
     elif log.LOG_LEVEL > log.LEVEL.INFO:
@@ -171,6 +172,8 @@ def _sync_profile(config, profile: str) -> Tuple[int, int]:
     """
     num_tasks = len(prof.load(config, profile))
     completed = 0
+
+    # TODO: sync profiles in parallel? with `-j N' arg?
     for task in prof.tasks(config, profile):
         if _sync_task(config, task):
             completed += 1
