@@ -36,13 +36,14 @@ def _print_profile(config, profile: str) -> None:
     List all tasks in PROFILE, their source, destination.
     The listing is sorted by order of synchronization.
     """
-    table = [["source", "destination", "args"]]
+    headings = ["source", "destination", "args"]
+    table = []
     for task in prof.tasks(config, profile):
         args = " ".join(task.args)
         table.append([task.src, task.dest, args])
 
     log.info(f"profile: {profile}")
-    utils.print_table(table)
+    utils.print_table(headings, table)
 
 
 def list(config, profiles: List[str]) -> None:

@@ -23,22 +23,23 @@ def time(fn):
     return wrapper
 
 
-def print_table(rows):
-    # figure out column widths
+def print_table(headings, rows):
+    # figure out column widths, widths[0] is the width of the 0th column, etc.
+    # the width of a column is based on the longest thing to occupy a cell in the column
     widths = [len(max(columns, key=len)) for columns in zip(*rows)]
 
     # print header
-    header, data = rows[0], rows[1:]
-    headings = [format(title, f"{width}s") for width, title in zip(widths, header)]
-    print(" | ".join(headings))
+    # header, rows = rows[0], rows[1:]
+    heads = [f"{title : ^{width}}" for width, title in zip(widths, headings)]
+    log.info(" | ".join(heads))
 
     # print header separator
-    print("-+-".join("-" * width for width in widths))
+    log.info("-+-".join("-" * width for width in widths))
 
-    # print data
-    for row in data:
-        cols = [format(cdata, "%ds" % width) for width, cdata in zip(widths, row)]
-        print(" | ".join(cols))
+    # print rows
+    for row in rows:
+        cols = [f"{data : <{width}}" for width, data in zip(widths, row)]
+        log.info(" | ".join(cols))
 
 
 # TODO: Convert to pure python instead of relying on UNIX tools.
