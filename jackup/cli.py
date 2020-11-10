@@ -1,49 +1,52 @@
-import os
-import sys
-import argparse
-import pkg_resources
-from pathlib import Path
+import logging, logging.config
 
-from jackup.core import list, sync
-from jackup.config import CONFIG
+import click
+
+from . import core
+from . import config as CFG
+
+log = logging.getLogger(__name__)
 
 
-def main():
-    semver = pkg_resources.require("jackup")[0].version
-
-    parser = argparse.ArgumentParser(description="Jackup: low-key file juggler")
-    parser.add_argument(
-        "-v", "--version", action="version", version=f"%(prog)s {semver}"
-    )
-    subparsers = parser.add_subparsers()
-
-    # TODO: add completion of profiles
-    list_parser = subparsers.add_parser(
-        "list", aliases=["ls"], help="List tasks in profiles"
-    )
-    list_parser.add_argument("profiles", nargs="*", help="Profiles with tasks to list")
-    list_parser.set_defaults(func=list)
-
-    sync_parser = subparsers.add_parser("sync", help="Synchronize profiles")
-    sync_parser.add_argument("profiles", nargs="*", help="Profiles with tasks to sync")
-    sync_parser.add_argument("-q", "--quiet", action="store_true", help="less verbose")
-    sync_parser.add_argument(
-        "-v", "--verbose", action="store_true", help="more verbose"
-    )
-    sync_parser.set_defaults(func=sync)
-
-    args = parser.parse_args()
-
-    # print usage if run without arguments
-    if not len(sys.argv) > 1:
-        parser.print_help()
+def print_version(ctx, param, value):
+    if not value or ctx.resilient_parsing:
         return
 
-    # delegate to relevant functions based on parsed args
-    args = vars(args)
-    func = args.pop("func")
-    func(CONFIG, **args)
+    version = open("__version__.py", "r").read().strip()
+    print(f"jackup v{version}")
+    ctx.exit()
+
+
+CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
+@click.group(context_settings=CONTEXT_SETTINGS)
+@click.option("-V", "--version", is_flag=True, callback=print_version, expose_value=False, is_eager=True,)
+@click.option("-v", "--verbose", help="", count=True)
+def cli(verbose):
+    verbosity = {
+        0: {"root": {"handlers": ["default"], "level": "INFO"}},
+        1: {"root": {"handlers": ["extended"], "level": "INFO"}},
+        2: {"root": {"handlers": ["extended"], "level": "DEBUG"}},
+    }
+    CFG.LOG_CONFIG.update(verbosity.get(verbose))
+    logging.config.dictConfig(CFG.LOG_CONFIG)
+    CFG.update({"verbosity": verbose})
+
+    log.debug(f"{CFG.CONFIG=}")
+
+
+@cli.command()
+@click.argument("profiles", nargs=-1)
+def list(profiles):
+    log.debug(f"{profiles=}")
+    core.list(CFG.CONFIG, profiles)
+
+
+@cli.command()
+@click.argument("profiles", nargs=-1)
+def sync(profiles):
+    log.debug(f"{profiles=}")
+    core.sync(CFG.CONFIG, profiles)
 
 
 if __name__ == "__main__":
-    main()
+    cli()

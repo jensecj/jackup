@@ -2,14 +2,15 @@ import os
 import sys
 import json
 import subprocess
+import logging
 
 from datetime import datetime
 from typing import List, Tuple, Optional
 
 import jackup.profile as prof
-import jackup.log as log
 import jackup.tableprinter as tp
 
+log = logging.getLogger(__name__)
 
 def _list_available_profiles(config) -> List[Tuple[str, str]]:
     """
@@ -201,16 +202,10 @@ def _sync(config, profile: str) -> bool:
         prof.unlock(config, profile)
 
 
-def sync(config, profiles: List[str], quiet: bool, verbose: bool) -> None:
+def sync(config, profiles: List[str]) -> None:
     """
     Synchronizes all tasks in PROFILE.
     """
-    if verbose:
-        log.set_level(log.LEVEL.DEBUG)
-
-    if quiet:
-        log.set_level(log.LEVEL.WARNING)
-
     try:
         results = [_sync(config, profile) for profile in profiles]
 

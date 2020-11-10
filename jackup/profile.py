@@ -1,11 +1,11 @@
 import os
 import json
+import logging
 
 from typing import List
 from types import SimpleNamespace as Namespace
 
-import jackup.log as log
-
+log = logging.getLogger(__name__)
 
 def path_to_profile(config, profile: str) -> str:
     """
