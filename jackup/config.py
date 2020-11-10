@@ -51,6 +51,7 @@ log_path = os.path.join(config_path, "jackup.log")  # TODO: log to /var/log?
 _config = {"config_path": config_path, "log_path": log_path}
 CONFIG = Namespace(**_config)
 
+ENV_CONFIG = "JACKUP_CONFIG"
 
 log = logging.getLogger(__name__)
 
@@ -60,3 +61,48 @@ def update(new):
     global CONFIG
     CONFIG = Namespace(**_config)
 
+
+def _get_config_file():
+    # paths to config file, in the ordere they're checked
+    paths = [
+        os.environ.get(ENV_CONFIG),
+        os.path.join(xdg_config_home(), "jackup/jackup.conf"),
+        os.path.expanduser("~/.jackup/jackup.conf"),
+        os.path.expanduser("~/.jackup"),
+    ]
+
+    for p in paths:
+        if p and os.path.isfile(p):
+            log.debug(f"{p}")
+            return p  # use the first valid config file
+
+
+def _from_file(config_file):
+    if config_file and os.path.isfile(config_file):
+        with open(os.path.expanduser(config_file), "r") as f:
+            return json.load(f)
+
+
+def _from_environment():
+    cfg = {}
+
+    # only return keys with valid values
+    return {k: v for k, v in cfg.items() if v is not None}
+
+
+def load():
+    config_file = _get_config_file()
+    log.debug(f"{config_file=}")
+
+    file_config = _from_file(config_file)
+    log.debug(f"{file_config=}")
+
+    env_config = _from_environment()
+    log.debug(f"{env_config=}")
+
+    config = {}
+    config.update(file_config or {})
+    config.update(env_config or {})
+    log.debug(f"{config=}")
+
+    return config
