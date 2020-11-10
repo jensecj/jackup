@@ -9,36 +9,37 @@ from typing import List, Tuple, Optional
 from . import profile as prof
 from . import utils
 from .utils import time
+from .config import CONFIG
 
 log = logging.getLogger(__name__)
 
 
-def _get_available_profiles(config) -> List[Tuple[str, str]]:
+def _get_available_profiles() -> List[Tuple[str, str]]:
     profiles = []
-    for profile in prof.profiles(config):
-        number_of_tasks = len(prof.tasks(config, profile))
+    for profile in prof.profiles():
+        number_of_tasks = len(prof.tasks(profile))
         profiles.append((profile, number_of_tasks))
 
     return profiles
 
 
-def _print_available_profiles(config) -> None:
+def _print_available_profiles() -> None:
     """
     List all available profiles on the system.
     """
     log.info("profiles:")
-    for profile in _get_available_profiles(config):
+    for profile in _get_available_profiles():
         log.info("- %s [%s]" % profile)
 
 
-def _print_profile(config, profile: str) -> None:
+def _print_profile(profile: str) -> None:
     """
     List all tasks in PROFILE, their source, destination.
     The listing is sorted by order of synchronization.
     """
     headings = ["source", "destination", "args"]
     table = []
-    for task in prof.tasks(config, profile):
+    for task in prof.tasks(profile):
         args = " ".join(task.args)
         table.append([task.src, task.dest, args])
 
@@ -46,25 +47,25 @@ def _print_profile(config, profile: str) -> None:
     utils.print_table(headings, table)
 
 
-def list(config, profiles: List[str]) -> None:
+def list(profiles: List[str]) -> None:
     """
     If given a PROFILE, list all tasks in that profile, otherwise list all
     available profiles on the system.
     """
     if not profiles:
-        _print_available_profiles(config)
+        _print_available_profiles()
         return
 
     for profile in profiles:
-        if not prof.exists(config, profile):
+        if not prof.exists(profile):
             log.error(f"the profile '{profile}' does not exist")
             continue
 
         if profile:
-            _print_profile(config, profile)
+            _print_profile(profile)
 
 
-def _read_ignore_file(config, folder: str) -> List[str]:
+def _read_ignore_file(folder: str) -> List[str]:
     """
     Reads the .jackupignore file, if any, from a folder
     """
@@ -79,9 +80,9 @@ def _read_ignore_file(config, folder: str) -> List[str]:
 
 
 # TODO: move to own synchronizer backend
-def _rsync(config, src: str, dest: str, args: List[str] = []) -> bool:
+def _rsync(src: str, dest: str, args: List[str] = []) -> bool:
     rsync_args = [
-        "--log-file=" + config.log_path,
+        "--log-file=" + CONFIG.log_path,
         "--no-motd",
         "--compress",  # compress files during transfer
         # "--timeout=30",
@@ -121,7 +122,7 @@ def _rsync(config, src: str, dest: str, args: List[str] = []) -> bool:
         return return_code == 0
 
 
-def _sync_rsync(config, task) -> bool:
+def _sync_rsync(task) -> bool:
     source = os.path.expanduser(task.src)
     destination = os.path.expanduser(task.dest)
 
@@ -147,7 +148,7 @@ def _sync_rsync(config, task) -> bool:
     args = task.args[:]  # copy list so we dont keep appending args
 
     # TODO: also ignore directories which contain a beacon-file (e.g. .rsyncignore)
-    excludes = _read_ignore_file(config, source)
+    excludes = _read_ignore_file(source)
 
     for ex in excludes:
         args += ["--exclude=" + ex]
@@ -160,30 +161,30 @@ def _sync_rsync(config, task) -> bool:
         args += ["--info=BACKUP,COPY,DEL,FLIST2,PROGRESS2,REMOVE,MISC2,STATS1,SYMSAFE"]
         # args += ["--verbose"]
 
-    return _rsync(config, source, destination, args)
+    return _rsync(source, destination, args)
 
 
 # TODO: extract sync-logic, where rsync is a backend, maybe also support rclone, restic, etc.
-def _sync_task(config, task) -> bool:
+def _sync_task(task) -> bool:
     log.info(f"● syncing {task.src} -> {task.dest}")
 
     # TODO: dispatch on type of sync: borg, rsync, rclone, etc.
-    return _sync_rsync(config, task)
+    return _sync_rsync(task)
 
 
-def _sync_profile(config, profile: str) -> Tuple[int, int]:
+def _sync_profile(profile: str) -> Tuple[int, int]:
     """
     Tries to synchronize all tasks in PROFILE.
     Returns a tuple of successful tasks, and total tasks.
     """
-    num_tasks = len(prof.load(config, profile))
+    num_tasks = len(prof.load(profile))
     completed = 0
 
     # TODO: sync profiles in parallel? with `-j N' arg?
-    for task in prof.tasks(config, profile):
-        if _sync_task(config, task):
+    for task in prof.tasks(profile):
+        if _sync_task(task):
             completed += 1
-            log.success(f"finished syncing {profile}/{task.name}")
+            log.info(f"finished syncing {profile}/{task.name}")
         else:
             log.error(f"failed to sync {profile}/{task.name}")
 
@@ -191,26 +192,26 @@ def _sync_profile(config, profile: str) -> Tuple[int, int]:
 
 
 @time
-def _sync(config, profile: str) -> bool:
-    if not prof.exists(config, profile):
+def _sync(profile: str) -> bool:
+    if not prof.exists(profile):
         log.error(f"the profile '{profile}' does not exist")
         return
 
-    if not prof.lock(config, profile):
+    if not prof.lock(profile):
         log.error(f"sync is already running for {profile}")
         return
 
     try:
-        return _sync_profile(config, profile)
+        return _sync_profile(profile)
     finally:
-        prof.unlock(config, profile)
+        prof.unlock(profile)
 
 
-def sync(config, profiles: List[str]) -> None:
+def sync(profiles: List[str]) -> None:
     """
     Synchronizes all tasks in PROFILE.
     """
     for profile in profiles:
-        if result := _sync(config, profile):
+        if result := _sync(profile):
             (completed_tasks, total_tasks) = result
             log.info(f"{profile} synced {completed_tasks}/{total_tasks} tasks")

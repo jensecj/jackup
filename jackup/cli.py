@@ -42,14 +42,14 @@ def main(verbose):
 @click.argument("profiles", nargs=-1)
 def list(profiles):
     log.debug(f"{profiles=}")
-    core.list(CFG.CONFIG, profiles)
+    core.list(profiles)
 
 
 @main.command()
 @click.argument("profiles", nargs=-1)
 def sync(profiles):
     log.debug(f"{profiles=}")
-    core.sync(CFG.CONFIG, profiles)
+    core.sync(profiles)
 
 
 if __name__ == "__main__":
