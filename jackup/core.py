@@ -194,15 +194,14 @@ def _sync_profile(config, profile: str) -> Tuple[int, int]:
 def _sync(config, profile: str) -> bool:
     if not prof.exists(config, profile):
         log.error(f"the profile '{profile}' does not exist")
-        return False
+        return
 
     if not prof.lock(config, profile):
         log.error(f"sync is already running for {profile}")
-        return False
+        return
 
     try:
-        (completed_tasks, total_tasks) = _sync_profile(config, profile)
-        return profile, completed_tasks, total_tasks
+        return _sync_profile(config, profile)
     finally:
         prof.unlock(config, profile)
 
@@ -211,17 +210,7 @@ def sync(config, profiles: List[str]) -> None:
     """
     Synchronizes all tasks in PROFILE.
     """
-    try:
-        results = [_sync(config, profile) for profile in profiles]
-
-        log.info("")
-        for r in results:
-            profile, completed_tasks, total_tasks = r
-
-            # report ratio of sucessful tasks to the total number of tasks,
-            # color coded, based on success-rate of the synchronization
-            task_ratio = f"{completed_tasks}/{total_tasks}"
-
-            log.info(f"{profile} synced {task_ratio} tasks")
-    except KeyboardInterrupt:
-        log.warning("\n\nSynchronization interrupted by user")
+    for profile in profiles:
+        if result := _sync(config, profile):
+            (completed_tasks, total_tasks) = result
+            log.info(f"{profile} synced {completed_tasks}/{total_tasks} tasks")
