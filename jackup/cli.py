@@ -43,3 +43,7 @@ def main():
     args = vars(args)
     func = args.pop("func")
     func(CONFIG, **args)
+
+
+if __name__ == "__main__":
+    main()
