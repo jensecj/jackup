@@ -109,7 +109,6 @@ def _rsync(src: str, dest: str, args: List[str] = []) -> bool:
 
     # make sure we dont expand filenames into args
     rsync_cmd = ["rsync"] + rsync_args + ["--"] + [src] + [dest]
-    log.debug(rsync_cmd)
 
     # capture errors and return them if any.
     with subprocess.Popen(rsync_cmd, stderr=subprocess.PIPE, text=True) as p:
