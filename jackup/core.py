@@ -4,11 +4,11 @@ import json
 import subprocess
 import logging
 
-from datetime import datetime
 from typing import List, Tuple, Optional
 
 from . import profile as prof
 from . import utils
+from .utils import time
 
 log = logging.getLogger(__name__)
 
@@ -189,6 +189,7 @@ def _sync_profile(config, profile: str) -> Tuple[int, int]:
     return (completed, num_tasks)
 
 
+@time
 def _sync(config, profile: str) -> bool:
     if not prof.exists(config, profile):
         log.error(f"the profile '{profile}' does not exist")
@@ -199,12 +200,7 @@ def _sync(config, profile: str) -> bool:
         return False
 
     try:
-        start_time = datetime.now()
-        log.debug(f"starting sync at {start_time}")
         (completed_tasks, total_tasks) = _sync_profile(config, profile)
-        end_time = datetime.now()
-        log.debug(f"sync ended at {end_time}, took {end_time - start_time}")
-
         return profile, completed_tasks, total_tasks
     finally:
         prof.unlock(config, profile)

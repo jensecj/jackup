@@ -1,6 +1,26 @@
 import os
 import subprocess
+import logging
+from datetime import datetime
 from typing import Tuple
+
+
+log = logging.getLogger(__name__)
+
+
+def time(fn):
+    def wrapper(*args, **kwargs):
+        start_time = datetime.now()
+
+        ret = fn(*args, **kwargs)
+
+        end_time = datetime.now()
+        elapsed = end_time - start_time
+        log.debug(f"`{fn.__module__}.{fn.__qualname__}' took {elapsed}")
+
+        return ret
+
+    return wrapper
 
 
 def print_table(rows):
