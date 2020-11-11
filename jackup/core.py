@@ -82,7 +82,7 @@ def _read_ignore_file(folder: str) -> List[str]:
 # TODO: move to own synchronizer backend
 def _rsync(src: str, dest: str, args: List[str] = []) -> bool:
     rsync_args = [
-        "--log-file=" + CONFIG.log_path,
+        "--log-file=" + CONFIG.get("log_path"),
         "--no-motd",
         "--compress",  # compress files during transfer
         # "--timeout=30",

@@ -15,7 +15,7 @@ def path_to_profile(profile: str) -> str:
     Returns the path to the file belonging to PROFILE.
     """
     if profile:
-        return os.path.join(CONFIG.config_path, profile + ".json")
+        return os.path.join(CONFIG.get("config_path"), profile + ".json")
 
 
 def exists(profile: str) -> bool:
@@ -50,7 +50,7 @@ def path_to_profile_lock(profile: str) -> str:
     """
     Returns the path to the lockfile belonging to PROFILE.
     """
-    return os.path.join(CONFIG.config_path, profile + ".lock")
+    return os.path.join(CONFIG.get("config_path"), profile + ".lock")
 
 
 def profiles() -> List[str]:
@@ -63,7 +63,7 @@ def profiles() -> List[str]:
     return [
         # dont include the last 5 charaters of the filename ('.json')
         os.path.splitext(profile)[0]
-        for profile in os.listdir(CONFIG.config_path)
+        for profile in os.listdir(CONFIG.get("config_path"))
         if profile.endswith(".json")
     ]
 
