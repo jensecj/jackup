@@ -1,4 +1,5 @@
 import logging, logging.config
+import pkg_resources
 
 import click
 
@@ -12,7 +13,7 @@ def print_version(ctx, param, value):
     if not value or ctx.resilient_parsing:
         return
 
-    version = open("__version__.py", "r").read().strip()
+    version = pkg_resources.require("jackup")[0].version
     print(f"jackup v{version}")
     ctx.exit()
 
