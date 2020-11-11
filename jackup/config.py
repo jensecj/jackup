@@ -5,6 +5,7 @@ from types import SimpleNamespace as Namespace
 
 from xdg import xdg_config_home
 
+
 LOG_CONFIG = {
     "version": 1,
     "disable_existing_loggers": False,
@@ -45,11 +46,7 @@ LOG_CONFIG = {
 }
 
 
-config_path = os.path.expanduser("~/.config/jackup/")
-log_path = os.path.join(config_path, "jackup.log")  # TODO: log to /var/log?
-
-_config = {"config_path": config_path, "log_path": log_path}
-CONFIG = Namespace(**_config)
+CONFIG = {}
 
 ENV_CONFIG = "JACKUP_CONFIG"
 
@@ -76,11 +73,16 @@ def _get_config_file():
             log.debug(f"{p}")
             return p  # use the first valid config file
 
+    # if no config file is found, default to XDG
+    return os.path.join(xdg_config_home(), "jackup/jackup.conf")
+
 
 def _from_file(config_file):
     if config_file and os.path.isfile(config_file):
         with open(os.path.expanduser(config_file), "r") as f:
             return json.load(f)
+
+    return {}
 
 
 def _from_environment():
@@ -100,9 +102,12 @@ def load():
     env_config = _from_environment()
     log.debug(f"{env_config=}")
 
-    config = {}
-    config.update(file_config or {})
-    config.update(env_config or {})
+    config_path = os.path.dirname(config_file)
+    log_path = os.path.join(config_path, "jackup.log")  # TODO: log to /var/log?
+    config = {"config_path": config_path, "log_path": log_path}
+
+    config.update(file_config)
+    config.update(env_config)
     log.debug(f"{config=}")
 
     return config
