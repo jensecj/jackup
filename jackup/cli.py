@@ -22,9 +22,6 @@ CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 @click.option("-V", "--version", is_flag=True, callback=print_version, expose_value=False, is_eager=True,)
 @click.option("-v", "--verbose", count=True, type=click.IntRange(0, 2))
 def main(verbose):
-    # load config from conf file and environment
-    CFG.update(CFG.load())
-
     verbosity = {
         0: {"root": {"handlers": ["default"], "level": "INFO"}},
         1: {"root": {"handlers": ["extended"], "level": "INFO"}},
@@ -33,7 +30,10 @@ def main(verbose):
 
     CFG.LOG_CONFIG.update(verbosity.get(verbose))
     logging.config.dictConfig(CFG.LOG_CONFIG)
-    CFG.update({"verbosity": verbose})
+
+    # load config from conf file and environment
+    CFG.CONFIG.update(CFG.load())
+    CFG.CONFIG.update({"verbosity": verbose})
 
     log.debug(f"{CFG.CONFIG=}")
 
