@@ -87,7 +87,6 @@ def _rsync(src: str, dest: str, args: List[str] = []) -> bool:
         "--compress",  # compress files during transfer
         # "--timeout=30",
         "--partial",
-        "--progress",
         "--human-readable",
         "--archive",  # -rlptgoD
         # "--recursive", # -r
@@ -153,12 +152,25 @@ def _sync_rsync(task) -> bool:
         args += ["--exclude=" + ex]
 
     # TODO: fix verbosity
-    if log.LOG_LEVEL < log.LEVEL.INFO:
-        args += ["--quiet"]
-    elif log.LOG_LEVEL > log.LEVEL.INFO:
+    # if log.LOG_LEVEL < log.LEVEL.INFO:
+    #     args += ["--quiet"]
+    # elif log.LOG_LEVEL > log.LEVEL.INFO:
+
+    verbosity = {
+        0: ["--quiet"],
+        1: [
+            "--progress",
+            "--info=BACKUP,COPY,DEL,FLIST2,PROGRESS2,REMOVE,MISC2,STATS1,SYMSAFE",
+        ],
         # print number of files, bytes sent/recieved, throughput, and total size
-        args += ["--info=BACKUP,COPY,DEL,FLIST2,PROGRESS2,REMOVE,MISC2,STATS1,SYMSAFE"]
-        # args += ["--verbose"]
+        2: [
+            "--progress",
+            "--info=BACKUP,COPY,DEL,FLIST2,PROGRESS2,REMOVE,MISC2,STATS1,SYMSAFE",
+            "--verbose",
+        ],
+    }
+
+    args += verbosity.get(CONFIG.get("verbosity"))
 
     return _rsync(source, destination, args)
 
