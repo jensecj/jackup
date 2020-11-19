@@ -15,6 +15,7 @@ log = logging.getLogger(__name__)
 
 
 def _get_available_profiles() -> List[Tuple[str, str]]:
+    """Return list of all available profiles, and the number of tasks in each."""
     profiles = []
     for profile in prof.profiles():
         number_of_tasks = len(prof.tasks(profile))
@@ -34,7 +35,7 @@ def _print_available_profiles() -> None:
 
 def _print_profile(profile: str) -> None:
     """
-    List all tasks in PROFILE, their source, destination.
+    List all tasks in PROFILE, their source, destination, and arguments.
     The listing is sorted by order of synchronization.
     """
     headings = ["source", "destination", "args"]
@@ -61,8 +62,7 @@ def list(profiles: List[str]) -> None:
             log.error(f"the profile '{profile}' does not exist")
             continue
 
-        if profile:
-            _print_profile(profile)
+        _print_profile(profile)
 
 
 def _read_ignore_file(folder: str) -> List[str]:
