@@ -141,6 +141,12 @@ def _sync_rsync(task) -> bool:
         log.error(f"{destination} is not mounted")
         return False
 
+    for mount in task.mounts:
+        log.debug(f"{mount=}")
+        if not os.path.ismount(mount):
+            log.error(f"{destination} is not mounted")
+            return False
+
     # TODO: translate paths, from uuid, network-shares, etc.
 
     args = task.args[:]  # copy list so we dont keep appending args

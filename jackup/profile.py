@@ -37,6 +37,7 @@ def load(profile: str):
         "args": [],
         "src_mounted": False,
         "dest_mounted": False,
+        "mounts": []
     }
 
     profile_file = path_to_profile(profile)
